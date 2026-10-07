@@ -1,0 +1,14 @@
+{
+ "rcIosKey": "",
+ "supabaseUrl": "",
+ "supabaseAnonKey": "",
+ "legal": {
+  "terms": "https://kovalbekbek-dodik.github.io/astrogramm-legal/ru/terms.html",
+  "privacy": "https://kovalbekbek-dodik.github.io/astrogramm-legal/ru/privacy.html",
+  "support": "https://kovalbekbek-dodik.github.io/astrogramm-legal/ru/support.html"
+ },
+ "etaDays": 7,
+ "storeBuild": true,
+ "iap": false,
+ "synth": false
+}
