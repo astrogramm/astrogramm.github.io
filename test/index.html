@@ -5714,7 +5714,7 @@ if(agn()&&AGN.ready&&AGN.ready.then) AGN.ready.then(afterBridge,afterBridge);
    после первого кадра; (2) центр ленты ставит ResizeObserver после естественной раскладки кадра, без чтения offsetLeft в коде
    отрисовки (принудительная раскладка); (3) контекст года (365 баллов) до первого кадра берётся из сохранённого, сам расчёт —
    после первого кадра частями по месяцу; разошлось — сохраняем новый и перерисовываем. Тексты и расчёт не меняются. */
-var AG_BUILD='e75bf3f74a44';                     // make_v12: хэш страницы — другая сборка = другой ключ сохранённого контекста
+var AG_BUILD='2a08596407a4';                     // make_v12: хэш страницы — другая сборка = другой ключ сохранённого контекста
 var _aff=[], _affDone=false;
 function afterFirstFrame(fn){ if(_affDone){ setTimeout(fn,0); return; } _aff.push(fn); }
 W3.afterFirstFrame=afterFirstFrame;
@@ -8200,6 +8200,18 @@ renderMe=function(){ var r=_renderMeSD.apply(this,arguments);
   return r; };
 window.renderMe=renderMe;
 document.addEventListener('click',function(e){ var x=e.target&&e.target.closest&&e.target.closest('[data-sday]'); if(x) orbOpenSphere(x.getAttribute('data-sday')); });
+
+// ревью 19 п. 10: пол в форме «Люди» — кнопками, как в онбординге (системный select остаётся скрытым источником значения)
+var _rlSex=renderLinks;
+renderLinks=function(){ var r=_rlSex.apply(this,arguments), sx=$('l-sex');
+  if(sx&&!$('l-sexchips')){ var w=document.createElement('div'); w.id='l-sexchips'; w.className='w3seg'; w.setAttribute('role','radiogroup'); w.setAttribute('aria-label','Пол');
+    w.innerHTML='<button type="button" class="w3chip" data-lsx="f" role="radio" aria-checked="false">женский</button><button type="button" class="w3chip" data-lsx="m" role="radio" aria-checked="false">мужской</button>';
+    sx.style.display='none'; sx.insertAdjacentElement('afterend',w);
+    w.addEventListener('click',function(e){ var b=e.target.closest('[data-lsx]'); if(!b) return; sx.value=b.getAttribute('data-lsx'); sx.dispatchEvent(new Event('change'));
+      w.querySelectorAll('[data-lsx]').forEach(function(x){ x.classList.toggle('on',x===b); x.setAttribute('aria-checked',String(x===b)); }); });
+    sx.addEventListener('change',function(){ w.querySelectorAll('[data-lsx]').forEach(function(x){ var on=x.getAttribute('data-lsx')===sx.value; x.classList.toggle('on',on); x.setAttribute('aria-checked',String(on)); }); }); }
+  return r; };
+window.renderLinks=renderLinks;
 
 /* ---------------------------------------------------------------- 16. старт */
 // каталог городов движка — рядом со страницей (geo/cities.json); без него — запасной список 32 городов
