@@ -1128,6 +1128,14 @@ html body .w3first .w3h{margin:30px 0 6px}
 #err12{display:none!important}
 body.ag-test::after{content:'тест · полный доступ';position:fixed;top:calc(6px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);z-index:3000;font:600 11px var(--font-body,'Ysabeau Office');letter-spacing:.04em;color:#140B26;background:#F2D06B;border-radius:999px;padding:3px 9px;pointer-events:none;opacity:.92}
 .rvnm .rvw{display:inline-block;white-space:nowrap}   /* audit 08.10: the name breaks only after the hyphen, never mid-word */
+/* chart copy for a reading chat (test mode only) */
+.orbcopy{display:block;width:100%;margin:8px 0 4px;padding:12px 14px;border-radius:16px;background:transparent;border:1px dashed rgba(217,185,103,.45);color:var(--am-gold,#D9B967);font:inherit;font-weight:600;text-align:center;cursor:pointer}
+.orbcopy small{display:block;margin-top:2px;font-weight:400;font-size:12px;opacity:.75}
+.cpsheet{position:fixed;inset:0;z-index:9999;background:rgba(8,6,20,.72);display:flex;align-items:flex-end;justify-content:center}
+.cpbox{width:100%;max-width:560px;max-height:86vh;display:flex;flex-direction:column;gap:8px;padding:18px 16px calc(16px + env(safe-area-inset-bottom));border-radius:22px 22px 0 0;background:var(--am-bg,#14102a);border-top:1px solid rgba(217,185,103,.3)}
+.cpbox small{opacity:.75;font-size:13px}
+.cpbox textarea{flex:1;min-height:40vh;width:100%;box-sizing:border-box;font:12px/1.4 ui-monospace,Menlo,monospace;background:rgba(255,255,255,.04);color:inherit;border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:10px}
+.cprow{display:flex;gap:8px}.cprow .w3btn{flex:1}
 </style>
 </head><body>
 <div class="stars" id="st"></div>
@@ -5727,7 +5735,7 @@ if(agn()&&AGN.ready&&AGN.ready.then) AGN.ready.then(afterBridge,afterBridge);
    после первого кадра; (2) центр ленты ставит ResizeObserver после естественной раскладки кадра, без чтения offsetLeft в коде
    отрисовки (принудительная раскладка); (3) контекст года (365 баллов) до первого кадра берётся из сохранённого, сам расчёт —
    после первого кадра частями по месяцу; разошлось — сохраняем новый и перерисовываем. Тексты и расчёт не меняются. */
-var AG_BUILD='c8c6b05d279d';                     // make_v12: хэш страницы — другая сборка = другой ключ сохранённого контекста
+var AG_BUILD='95c7ecd9277d';                     // make_v12: хэш страницы — другая сборка = другой ключ сохранённого контекста
 var _aff=[], _affDone=false;
 function afterFirstFrame(fn){ if(_affDone){ setTimeout(fn,0); return; } _aff.push(fn); }
 W3.afterFirstFrame=afterFirstFrame;
@@ -8259,6 +8267,90 @@ window.renderLinks=renderLinks;
 // badge while test mode is on (audit 08.10): the tester always sees that the paid view is simulated
 (function(){ function sync(){ try{ var A=agn(); document.body.classList.toggle('ag-test',!!(A&&A.test&&A.test.available()&&A.test.on())); }catch(e){} }
   document.addEventListener('agn:test',sync); setTimeout(sync,1500); })();
+// Chart copy for a reading chat (Sasha 08.10): in test mode the Map screen gets «Скопировать карту для разбора» —
+// one prompt with the engine's full calculation (chart.json/1 + D10), a readable summary, the core command
+// for a chat with the repository, and the product canons. Web test link only (same gate as the founder mode).
+(function(){
+  var NAKS=['Ашвини','Бхарани','Криттика','Рохини','Мригашира','Ардра','Пунарвасу','Пушья','Ашлеша','Магха','Пурва Пхалгуни','Уттара Пхалгуни','Хаста','Читра','Свати','Вишакха','Анурадха','Джьештха','Мула','Пурва Ашадха','Уттара Ашадха','Шравана','Дхаништха','Шатабхиша','Пурва Бхадрапада','Уттара Бхадрапада','Ревати'];
+  var ARC={1:'Маг',2:'Папесса',3:'Императрица',4:'Император',5:'Папа',6:'Влюблённые',7:'Колесница',8:'Справедливость',9:'Отшельник',10:'Колесо Фортуны',11:'Сила',12:'Повешенный',13:'Смерть',14:'Умеренность',15:'Дьявол',16:'Башня',17:'Звезда',18:'Луна',19:'Солнце',20:'Суд',21:'Мир',22:'Шут'};
+  function on(){ try{ var A=agn(); return !!(A&&A.test&&A.test.available()&&A.test.on()); }catch(e){ return false; } }
+  function today(){ var t=new Date(); return t.getFullYear()+'-'+('0'+(t.getMonth()+1)).slice(-2)+'-'+('0'+t.getDate()).slice(-2); }
+  function dm(lon){ var x=((lon%30)+30)%30, d=Math.floor(x), m=Math.floor((x-d)*60+1e-6); return d+'°'+('0'+m).slice(-2)+'′'; }
+  function arc(n){ return n+(ARC[n]?' ('+ARC[n]+')':''); }
+  function build(){
+    var p=getActive(); if(!p||!p.d||!window.AGE||!AGE.chartJson) return null;
+    var inp=engineInput12(p); inp.ref=today();
+    var c=AGE.chartJson(inp), d10=null; try{ d10=AGE.d10Json(c); }catch(e){}
+    var I=c.input, N=c.natal, B=c.bazi, M=c.matrix, U=c.numerology, H=c.human_design, V=c.vimshottari, nm=c['имя карты']||{};
+    var unk=!!I.time_unknown, pl=inp.place||{}, city=pl.name||'место', L=[];
+    var dt=I.date.split('-').reverse().join('.');
+    L.push('▶ КАРТА ДЛЯ РАЗБОРА · Astrogramm');
+    L.push((p.n||'Без имени')+' · '+dt+' '+(unk?'время неизвестно':I.time)+' · '+city+' ('+(+pl.lat).toFixed(4)+', '+(+pl.lon).toFixed(4)+', '+pl.tz+') · пол для тактов бацзы: '+(I.sex_for_luck==='f'?'женский':'мужской'));
+    if(nm['имя']) L.push('Имя карты: '+nm['имя']+(nm['подпись']?' ('+nm['подпись']+')':''));
+    L.push('Расчёт: движок приложения Astrogramm '+c.engine.version+' — '+c.engine.source+'; совпадает с ядром chart.py. Дата отсчёта: '+I.ref_date+'. UTC'+(I.utc_offset>=0?'+':'')+I.utc_offset+(unk?'':', истинное солнечное '+I.true_solar)+'.');
+    L.push('');
+    L.push('ПРАВИЛА ДЛЯ ЧАТА');
+    L.push('1. Все числа ниже — готовый расчёт. Не пересчитывай вручную и не сверяй с внешними сервисами.');
+    L.push('2. Если у чата есть рабочая среда с репозиторием astrogramm — сначала посчитай полную карту ядром (там 格局, взаимодействия ветвей, аспекты, D10–D11, прогнозы) и сверь столпы, матрицу и кин с этим блоком:');
+    L.push('   python3 skills/astrogramm-core/chart.py '+I.date+' '+(unk?'12:00':I.time)+' "'+city.replace(/["|]/g,'')+'|'+pl.lat+'|'+pl.lon+'|'+pl.tz+'" '+(I.sex_for_luck==='f'?'ж':'м')+' --json --ref '+I.ref_date);
+    L.push('   Числа имени — только по полному имени при рождении: допиши --name "Имя Отчество Фамилия".');
+    L.push('   Полный разбор — по конвейеру A-8 (навык astrogramm-client-reading).');
+    L.push('3. Если среды нет — работай только по этим числам; чего здесь нет (格局, аспекты, взаимодействия ветвей), не досчитывай — так и скажи.');
+    if(unk) L.push('4. Время рождения неизвестно: дома, АСЦ, МС, столп часа и пада Луны не используются (в расчёте стоит 12:00).');
+    L.push((unk?'5':'4')+'. Каноны: арканы марсельские (8 — Справедливость, 11 — Сила); узел истинный; Цолкин Dreamspell; Селена по Глобе; сутки бацзы с 23:00 истинного солнечного; 寅寅 — удвоение, не наказание; линии рода Матрицы по Ладини; ярусы M2 по классам планеты / цифры / цикл. Прогнозы — только периоды фона, без исхода. «Ты» без рода, без диагнозов, органов, ярлыков и родовой эзотерики.');
+    L.push('');
+    L.push('КРАТКО');
+    var pk=Object.keys(N.planets).map(function(k){ var q=N.planets[k]; return k+' '+q.sign+' '+dm(q.lon)+(q.house&&!unk?' '+q.house+'Н':'')+(q.retro?' Rx':'')+(q.oob?' вне границ':''); });
+    L.push('Натал (тропик, Плацидус): '+(unk?'':'АСЦ '+N.cusp_signs[0]+' '+dm(N.asc)+' · МС '+N.cusp_signs[9]+' '+dm(N.mc)+' · ')+pk.join(' · '));
+    var mo=N.planets['Луна']; if(mo&&mo.nak_index!=null) L.push('Накшатра Луны (Лахири): '+NAKS[mo.nak_index]+(unk?'':', пада '+mo.pada));
+    var bz='Бацзы (час | день | месяц | год): '+(unk?'—':B.pillars.hour)+' | '+B.pillars.day+' | '+B.pillars.month+' | '+B.pillars.year+' · ГД '+B.dm;
+    if(d10&&d10.strength) bz+=' · сила: '+d10.strength.cls+' '+String(d10.strength.pct).replace('.',',')+' %';
+    if(d10&&d10.useful){ var u=d10.useful; bz+=' · 用神 '+u.yong+(u.xi&&u.xi.length?', 喜神 '+u.xi.join(', '):'')+', 忌神 '+u.ji+(u.chou?', 仇神 '+u.chou:'')+(u.tiaohou?', 调候 '+u.tiaohou:''); }
+    var cur=null, nxt=null; (B.luck.periods||[]).forEach(function(x,i,a){ if(x.gz===B.luck.current&&!cur){ cur=x; nxt=a[i+1]; } });
+    if(cur) bz+=' · такт '+cur.gz+' ('+cur.from+' — '+cur.to+')'+(nxt?', далее '+nxt.gz:'');
+    L.push(bz);
+    L.push('Матрица: А '+arc(M.A)+' · В '+arc(M.B)+' · С '+arc(M.C)+' · D '+arc(M.D)+' · центр '+arc(M.center)+' · канал денег '+M.money.join('–')+(M.lineage?' · линии рода: отец '+M.lineage.father.join(' и ')+', мать '+M.lineage.mother.join(' и '):''));
+    var py=U.personal_year||{}, yk=Object.keys(py)[0], ch=U.challenges||{};
+    L.push('Нумерология: ЖП '+U.life_path+' · число дня '+U.day_power+' · пиннаклы '+(U.pinnacles||[]).map(function(x){ return x.value+' ('+x.ages+')'; }).join(' → ')+' · вызовы '+[ch.first,ch.second,ch.main,ch.fourth].join(' / ')+(yk?' · личный год '+yk+' = '+py[yk]:'')+(U.karmic_tests&&U.karmic_tests.length?' · испытания '+U.karmic_tests.join(', '):'')+(U.name?' · имя «'+U.name.full_name+'»: выражение '+U.name.expression+', душа '+U.name.soul+', личность '+U.name.personality:''));
+    L.push('Цолкин (Dreamspell): кин '+c.tzolkin.kin+', тон '+c.tzolkin.tone+', печать '+c.tzolkin.seal+(nm['печать']?' · '+nm['печать']:''));
+    L.push('Гуа: '+c.gua);
+    L.push('Дизайн Человека: '+H.type+' · авторитет '+H.authority+' · профиль '+H.profile+' · определение '+H.definition+' · крест '+H.cross.name+' ('+H.cross.gates+') · каналы '+H.channels.join(', ')+' · определены: '+H.defined_centers.join(', ')+' · открыты: '+H.open_centers.join(', '));
+    var vc=V.current||{}; if(vc.maha) L.push('Вимшоттари: махадаша '+vc.maha.lord+' ('+vc.maha.from+' — '+vc.maha.to+')'+(vc.antar?', антардаша '+vc.antar.lord+' ('+vc.antar.from+' — '+vc.antar.to+')':'')+(vc.pratyantar?', пратьянтардаша '+vc.pratyantar.lord+' ('+vc.pratyantar.from+' — '+vc.pratyantar.to+')':''));
+    if(c.borders&&c.borders.length) L.push('Пограничные места расчёта: '+c.borders.join(', ')+' — уточни время рождения.');
+    L.push('');
+    L.push('ПОЛНЫЙ РАСЧЁТ (chart.json/1 + D10), JSON:');
+    L.push('```json');
+    L.push(JSON.stringify({chart:c,d10:d10}));
+    L.push('```');
+    L.push('');
+    L.push('ЗАДАЧА: ');
+    return L.join('\n');
+  }
+  function sheet(txt){
+    var old=$('cp-sheet'); if(old) old.remove();
+    var w=document.createElement('div'); w.id='cp-sheet'; w.className='cpsheet';
+    w.innerHTML='<div class="cpbox"><b>Карта для разбора</b><small>'+txt.length.toLocaleString('ru')+' знаков. Скопируй и вставь в чат разбора, задачу допиши в конце.</small><textarea readonly></textarea><div class="cprow"><button type="button" class="w3btn" data-cp="copy">Скопировать всё</button><button type="button" class="w3btn ghost" data-cp="close">Закрыть</button></div></div>';
+    w.querySelector('textarea').value=txt; document.body.appendChild(w);
+    w.addEventListener('click',function(e){ var b=e.target.closest('[data-cp]'); if(e.target===w||(b&&b.getAttribute('data-cp')==='close')){ w.remove(); return; }
+      if(b) copy(txt,function(ok){ if(ok){ W3.toast('Скопировано'); w.remove(); } else { var ta=w.querySelector('textarea'); ta.focus(); ta.select(); W3.toast('Выделено — нажми «Скопировать» в меню'); } }); });
+  }
+  function copy(txt,cb){
+    function legacy(){ try{ var ta=document.createElement('textarea'); ta.value=txt; ta.setAttribute('readonly',''); ta.style.cssText='position:fixed;top:0;left:0;opacity:0'; document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0,txt.length); var ok=document.execCommand('copy'); ta.remove(); return ok; }catch(e){ return false; } }
+    try{ if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(function(){ cb(true); },function(){ cb(legacy()); }); return; } }catch(e){}
+    cb(legacy());
+  }
+  document.addEventListener('click',function(e){ var x=e.target&&e.target.closest&&e.target.closest('#orb-copy'); if(!x) return;
+    var txt=null; try{ txt=build(); }catch(err){ try{ console.error(err); }catch(x2){} }
+    if(!txt){ W3.toast('Расчёт ещё не готов — попробуй через секунду'); return; }
+    copy(txt,function(ok){ if(ok) W3.toast('Карта скопирована: '+txt.length.toLocaleString('ru')+' знаков — вставь в чат разбора'); else sheet(txt); }); });
+  var _rm=renderMe;
+  renderMe=function(){ var r=_rm.apply(this,arguments);
+    try{ var s=$('s-me'), st=s&&s.querySelector('#orb-stage'); if(!st||ORB.level!=='root'||$('orb-copy')||!on()) return r;
+      var at=$('orb-sday')||st; at.insertAdjacentHTML('afterend','<button class="orbcopy" id="orb-copy" type="button">Скопировать карту для разбора<small>вся математика одним промтом · только в тесте</small></button>'); }catch(e){}
+    return r; };
+  window.renderMe=renderMe;
+  window.AG_chartPrompt=build;
+})();
 
 /* ---------------------------------------------------------------- 16. старт */
 // каталог городов движка — рядом со страницей (geo/cities.json); без него — запасной список 32 городов
