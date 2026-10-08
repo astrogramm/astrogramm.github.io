@@ -365,7 +365,7 @@
         if (testOn()) {   // audit 08.10: test mode on another chart — no false «в очереди»; the founder's sphere as an honest example
           return founderJSON(id).then(function (j) { j = Object.assign({}, j, { title: s.title, kit_title: s.kit_title });
             screen(sphereHTML(j, { caption: 'Пример полного текста · карта основателя. Для этой карты полный разбор не заказан' }), j.title); })
-            .catch(function () { screen(waitHTML(s, profile), s.title); }); }
+            .catch(function () { screen('<p class="agp-note">Для этой карты полный разбор не заказан — ниже бесплатная часть сферы.</p>' + partialHTML(s, profile), s.title); }); }   // bundle without the founder's spheres (store build)
         return sphereJSON(id, profile, false).then(show)
           .catch(function () { screen(waitHTML(s, profile), s.title); });   // bought, text not delivered yet → honest status
       }
