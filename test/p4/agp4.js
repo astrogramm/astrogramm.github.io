@@ -131,7 +131,11 @@
   function founder(profile) { return isSample(profile); }
 
   // ------------------------------------------------------------------ table of contents (46 spheres by kit)
+  // feedback 08.10 (tester): the full card at the bottom of every sphere reads like an error — full card until the sample
+  // has been opened once, then one quiet line
+  function sampleSeen() { try { return localStorage.getItem('ag_sample_seen') === '1'; } catch (e) { return false; } }
   function sampleCard() {
+    if (sampleSeen()) return '<p class="agp-note agp-sample-line"><a href="#" data-sample-open="1">Как выглядит полный текст сферы →</a></p>';
     return '<div class="agp-sample" data-sample-open="1" role="button" tabindex="0"><div class="agp-cap">Пример полного текста · карта основателя</div><b>Сфера ' + esc(cat.sample_id) + ' — ' + esc(cat.sample_title || '') + '</b><div class="agp-note">Так выглядит сфера целиком: все системы вместе — в чём совпадают и о чём спорят, что делать и итог.</div></div>';
   }
   function tocHTML(c, profile, opts) {
@@ -233,7 +237,7 @@
     el.addEventListener('click', function (e) {
       if (e.target.getAttribute && e.target.getAttribute('data-x')) { close(); return; }
       var yb = e.target.closest && e.target.closest('.agp-yb'); if (yb) tierTip(yb);
-      var so = e.target.closest && e.target.closest('[data-sample-open]'); if (so && cat) { open(cat.sample_id, { sample: true }); return; }
+      var so = e.target.closest && e.target.closest('[data-sample-open]'); if (so && cat) { if (e.preventDefault) e.preventDefault(); try { localStorage.setItem('ag_sample_seen', '1'); } catch (x) {} open(cat.sample_id, { sample: true }); return; }
       var dl = e.target.closest && e.target.closest('[data-agp-dispute]');   // «подробнее в споре» — шаг 4 «Карты» (спор карты)
       if (dl) { e.preventDefault(); close(); try { if (W.W3 && W.W3.pathOpen) W.W3.pathOpen(4); } catch (x) {} }
     });

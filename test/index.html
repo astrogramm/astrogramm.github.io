@@ -2876,7 +2876,7 @@ function divBar(label,val,maxAbs){
  return '<div class="divrow"><div class="dl">'+label+'</div><div class="divtrack">'+bar+'</div><div class="divval '+cls+'">'+(val>0?'+':'')+val+'</div></div>';
 }
 function ctxLine(d){
- var s='<div class="stats12"><div><span>твой средний</span><b>'+d.ctx.avg+'</b></div><div><span>лучший за год</span><b>'+d.ctx.best+'</b></div><div><span>самый тихий</span><b>'+d.ctx.worst+'</b></div></div><div class="ctx12">';
+ var s='<div class="stats12"><div><span>твой средний день</span><b>'+d.ctx.avg+'</b></div><div><span>лучший день года</span><b>'+d.ctx.best+'</b></div><div><span>самый тихий день</span><b>'+d.ctx.worst+'</b></div></div><div class="ctx12">';
  if(d.peak) s+=' &nbsp;<b style="color:#ffd76b">★ пик недели</b>';
  if(d.run[0]==='hi'&&d.run[1]>=2) s+=' &nbsp;<b style="color:#b7e3a1">'+d.run[1]+'-й сильный подряд</b>';
  if(d.run[0]==='lo'&&d.run[1]>=2) s+=' &nbsp;<b style="color:#e0946b">'+d.run[1]+'-й трудный подряд</b>';
@@ -5300,7 +5300,7 @@ renderToday=function(){
    // #15 (ось «понятно новичку»): в шапке — только русские слова; иероглифы и сторона света — по тапу и в «Ещё о дне»
    +'<div class="t12top"><div><div class="pname" data-t="pillar">'+d.arch+' · '+d.an+'</div><div class="psub"><span class="w3gz">'+esc(dayEl12(d))+'</span></div></div>'
    +stemSlot12(d)+'</div>'
-   +'<div class="score12" data-t="score"><span class="big">'+d.sc+'</span><div class="meta"><span style="display:flex;align-items:center;gap:6px"><span class="vpill v-'+vkey(d.v)+'">'+d.v+'</span></span><span class="avg">'+dayTier12w()+'</span>'+streak12(isToday)+'</div>'+shareBtn('day')+'</div>'
+   +'<div class="score12" data-t="score"><span class="big">'+d.sc+'</span><div class="meta"><span class="avg sclbl">оценка дня из 100</span><span style="display:flex;align-items:center;gap:6px"><span class="vpill v-'+vkey(d.v)+'">'+d.v+'</span></span><span class="avg">'+dayTier12w()+'</span>'+streak12(isToday)+'</div>'+shareBtn('day')+'</div>'
    +ctxLine(d)
    +dayMain(d)
    +(quiet?'<div class="w3quiet">'+helpLinkHTML()+'</div>':'')
@@ -5741,7 +5741,7 @@ if(agn()&&AGN.ready&&AGN.ready.then) AGN.ready.then(afterBridge,afterBridge);
    после первого кадра; (2) центр ленты ставит ResizeObserver после естественной раскладки кадра, без чтения offsetLeft в коде
    отрисовки (принудительная раскладка); (3) контекст года (365 баллов) до первого кадра берётся из сохранённого, сам расчёт —
    после первого кадра частями по месяцу; разошлось — сохраняем новый и перерисовываем. Тексты и расчёт не меняются. */
-var AG_BUILD='5e5158cb8325';                     // make_v12: хэш страницы — другая сборка = другой ключ сохранённого контекста
+var AG_BUILD='d400424a2389';                     // make_v12: хэш страницы — другая сборка = другой ключ сохранённого контекста
 var _aff=[], _affDone=false;
 function afterFirstFrame(fn){ if(_affDone){ setTimeout(fn,0); return; } _aff.push(fn); }
 W3.afterFirstFrame=afterFirstFrame;
@@ -8349,8 +8349,24 @@ window.renderLinks=renderLinks;
     var txt=null; try{ txt=build(); }catch(err){ try{ console.error(err); }catch(x2){} }
     if(!txt){ W3.toast('Расчёт ещё не готов — попробуй через секунду'); return; }
     copy(txt,function(ok){ if(ok) W3.toast('Карта скопирована: '+txt.length.toLocaleString('ru')+' знаков — вставь в чат разбора'); else sheet(txt); }); });
+  // test link only (Sasha 08.10): a tester sends their own chart by their own tap — nothing leaves the phone otherwise
+  function avail(){ try{ var A=agn(); return !!(A&&A.test&&A.test.available()); }catch(e){ return false; } }
+  function shortLine(){
+    var p=getActive(); if(!p||!p.d) return null; var inp=engineInput12(p), pl=inp.place||{}, unk=!!p.nt;
+    var nm='';
+    try{ nm=(AGE.chartJson(Object.assign({},inp,{ref:today()}))['имя карты']||{})['имя']||''; }catch(e){}
+    return 'Astrogramm — моя карта для разбора\n'+(p.n||'')+' · '+p.d.split('-').reverse().join('.')+' '+(unk?'время неизвестно':(p.t||''))+' · '+(pl.name||'')+' · '+(p.s==='f'?'ж':'м')+(nm?' · '+nm:'')
+      +'\nядро: python3 skills/astrogramm-core/chart.py '+p.d+' '+(unk?'12:00':p.t)+' "'+String(pl.name||'место').replace(/["|]/g,'')+'|'+pl.lat+'|'+pl.lon+'|'+pl.tz+'" '+(p.s==='f'?'ж':'м')+' --json';
+  }
+  document.addEventListener('click',function(e){ var x=e.target&&e.target.closest&&e.target.closest('#orb-send'); if(!x) return;
+    var txt=shortLine(); if(!txt){ W3.toast('Сначала введи дату рождения'); return; }
+    try{ if(navigator.share){ navigator.share({text:txt}).catch(function(){}); return; } }catch(err){}
+    copy(txt,function(ok){ W3.toast(ok?'Скопировано — вставь в чат с Сашей':'Не получилось скопировать'); if(!ok) sheet(txt); }); });
   var _rm=renderMe;
   renderMe=function(){ var r=_rm.apply(this,arguments);
+    try{ var s0=$('s-me'), st0=s0&&s0.querySelector('#orb-stage');
+      if(st0&&ORB.level==='root'&&!$('orb-send')&&avail()&&!on()&&!isSasha()){ var at0=$('orb-sday')||st0;
+        at0.insertAdjacentHTML('afterend','<button class="orbcopy" id="orb-send" type="button">Хочешь полный разбор? Отправь карту Саше<small>дата, время и город уйдут только по твоему нажатию</small></button>'); } }catch(e){}
     try{ var s=$('s-me'), st=s&&s.querySelector('#orb-stage'); if(!st||ORB.level!=='root'||$('orb-copy')||!on()) return r;
       var at=$('orb-sday')||st; at.insertAdjacentHTML('afterend','<button class="orbcopy" id="orb-copy" type="button">Скопировать карту для разбора<small>вся математика одним промтом · только в тесте</small></button>'); }catch(e){}
     return r; };
