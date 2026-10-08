@@ -213,6 +213,7 @@
       h += "<div class=\"agp-sec\">Де системи сходяться</div><div class=\"agp-pl\">" + esc(s.converge.text)
         + (tl === 3 ? "<span class=\"cl\" style=\"margin:6px 0 0\">суперечки немає: три незалежні шляхи кажуть одне</span>" : '') + '</div>';
     }
+    if (s.poles && s.synthesis) h += "<div class=\"agp-sec\">Де карта тягне у два боки</div><p>" + esc(plainSyn(s.synthesis)) + '</p>';   // audit 08.10 №2
     if (s.hot && s.hot.length) {
       h += "<div class=\"agp-sec\">Що робити</div>";
       s.hot.forEach(function (p) {
@@ -227,7 +228,7 @@
     var chain = s.chain_text ? esc(s.chain_text) : ch.energy ? ["Енергія", "Якість", "Подія", "Дія зараз"].map(function (l, i) { var v = [ch.energy, ch.quality, ch.event, ch.action][i]; return v ? '<p><b>' + l + ':</b> ' + esc(v) + '</p>' : ''; }).join('') : '';
     h += acc("Ще рекомендації", s.recs && s.recs.length ? '<ul>' + s.recs.map(function (r) { return '<li>' + esc(r) + '</li>'; }).join('') + '</ul>' : '')
       + acc('Просто', esc(s.simple)) + acc("Професійно", esc(s.pro)) + acc("Мости між системами", esc(s.bridges))
-      + acc("Як це пов’язано", esc(plainSyn(s.synthesis))) + acc("Чому такий ярус", esc(s.tier_text)) + acc("Як це розгортається", chain);
+      + (s.poles ? '' : acc("Як це пов’язано", esc(plainSyn(s.synthesis)))) + acc("Чому такий ярус", esc(s.tier_text)) + acc("Як це розгортається", chain);
     return h;
   }
   function screen(html, label) {

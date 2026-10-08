@@ -5801,7 +5801,7 @@ if(agn()&&AGN.ready&&AGN.ready.then) AGN.ready.then(afterBridge,afterBridge);
    после первого кадра; (2) центр ленты ставит ResizeObserver после естественной раскладки кадра, без чтения offsetLeft в коде
    отрисовки (принудительная раскладка); (3) контекст года (365 баллов) до первого кадра берётся из сохранённого, сам расчёт —
    после первого кадра частями по месяцу; разошлось — сохраняем новый и перерисовываем. Тексты и расчёт не меняются. */
-var AG_BUILD='d400424a2389';                     // make_v12: хэш страницы — другая сборка = другой ключ сохранённого контекста
+var AG_BUILD='f445213c67d9';                     // make_v12: хэш страницы — другая сборка = другой ключ сохранённого контекста
 var _aff=[], _affDone=false;
 function afterFirstFrame(fn){ if(_affDone){ setTimeout(fn,0); return; } _aff.push(fn); }
 W3.afterFirstFrame=afterFirstFrame;
@@ -7087,6 +7087,14 @@ function offText(d,k){ var c=dayCaveatK(k||selKey), v=String(d.off[1]);
   if((c.clash||c.voc>=12)&&/старт|почина|відкрива|заяв|підпису/.test(v)) return t(W15_T,'off_caveat',"знайомитися й готуватися; сам запуск — на інший день");
   return v; }
 W3.offText=offText;
+// audit 08.10 S2: the goal list must not say «запускай» on a day whose almanac line says «сам запуск — на другой день»
+// (a clash of branches or a long void Moon): launch and deal goals are capped below the «подходит» threshold (62).
+(function(){ if(typeof EVDEF==='undefined') return;
+  EVDEF.forEach(function(e){ if(!/Запуск|Гроші/.test(e.n)) return; var sc0=e.score, why0=e.why;
+    var cav=function(d){ var c=dayCaveatK(d&&d.key); return !!(d&&d.key&&(c.clash||c.voc>=12)); };
+    e.score=function(d){ var s=sc0.apply(this,arguments); return cav(d)?Math.min(s,58):s; };
+    if(typeof why0==='function') e.why=function(d){ return cav(d)?t(W15_T,'goal_caveat',"день з ударом або довгим «Місяцем без курсу» — готуй і анонсуй, а запуск і підпис — іншого дня"):why0.apply(this,arguments); };
+  }); })();
 var _tagRu15b=tagRu;
 tagRu=function(key,txt,d){ if(key==='off'){ var nm=String(d.off[0]).split(' ').slice(1).join(' ')||''; return 'день «'+nm+'»: '+offText(d); } return _tagRu15b(key,txt,d); };
 var _weekBlock15=weekBlock;
