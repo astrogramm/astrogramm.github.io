@@ -5714,7 +5714,7 @@ if(agn()&&AGN.ready&&AGN.ready.then) AGN.ready.then(afterBridge,afterBridge);
    после первого кадра; (2) центр ленты ставит ResizeObserver после естественной раскладки кадра, без чтения offsetLeft в коде
    отрисовки (принудительная раскладка); (3) контекст года (365 баллов) до первого кадра берётся из сохранённого, сам расчёт —
    после первого кадра частями по месяцу; разошлось — сохраняем новый и перерисовываем. Тексты и расчёт не меняются. */
-var AG_BUILD='63484b5fb662';                     // make_v12: хэш страницы — другая сборка = другой ключ сохранённого контекста
+var AG_BUILD='c9a2dcc5c73c';                     // make_v12: хэш страницы — другая сборка = другой ключ сохранённого контекста
 var _aff=[], _affDone=false;
 function afterFirstFrame(fn){ if(_affDone){ setTimeout(fn,0); return; } _aff.push(fn); }
 W3.afterFirstFrame=afterFirstFrame;
@@ -8028,7 +8028,10 @@ W3.reveal=function(a,opt){
 };
 function rvRun(X,opt){
   var old=$('reveal'); if(old) old.remove();
-  var face=X.charKey?'<img src="'+illoSrc(X.charKey)+'" alt="'+esc(X.name)+'">':'<div class="rvmed"><img src="'+illoSrc(X.animalKey)+'" alt="'+esc(X.name)+'"></div>';
+  // character not generated yet or not loaded — the card falls back to the animal medallion, never an empty face
+  var med='<div class="rvmed"><img src="'+illoSrc(X.animalKey)+'" alt="'+esc(X.name)+'"></div>';
+  var face=X.charKey?'<img src="'+illoSrc(X.charKey)+'" alt="'+esc(X.name)+'" onerror="this.outerHTML=this.dataset.fb" data-fb="'+esc(med)+'">':med;
+  [X.charKey,X.animalKey,'seal_'+String(X.seal).padStart(2,'0')].forEach(function(k){ if(k){ var im=new Image(); im.src=illoSrc(k); } });   // preload: slow mobile network
   var el=document.createElement('div'); el.id='reveal'; el.className='rv'; el.setAttribute('role','dialog'); el.setAttribute('aria-label','Открытие карты: '+X.name);
   el.innerHTML='<canvas></canvas><div class="rvrays"></div>'
     +'<div class="rvcap rvc1"><div class="rvpan"><b>Небо в момент твоего рождения</b><i id="rv-clock"></i><small>'+esc(String(X.city).toUpperCase())+'</small></div></div><div class="rvcap rvc2"><b>Восемь систем — одна карта</b></div>'
