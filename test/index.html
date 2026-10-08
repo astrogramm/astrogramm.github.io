@@ -5717,7 +5717,7 @@ if(agn()&&AGN.ready&&AGN.ready.then) AGN.ready.then(afterBridge,afterBridge);
    после первого кадра; (2) центр ленты ставит ResizeObserver после естественной раскладки кадра, без чтения offsetLeft в коде
    отрисовки (принудительная раскладка); (3) контекст года (365 баллов) до первого кадра берётся из сохранённого, сам расчёт —
    после первого кадра частями по месяцу; разошлось — сохраняем новый и перерисовываем. Тексты и расчёт не меняются. */
-var AG_BUILD='83037e1809ca';                     // make_v12: хэш страницы — другая сборка = другой ключ сохранённого контекста
+var AG_BUILD='f5bbd0f44c4c';                     // make_v12: хэш страницы — другая сборка = другой ключ сохранённого контекста
 var _aff=[], _affDone=false;
 function afterFirstFrame(fn){ if(_affDone){ setTimeout(fn,0); return; } _aff.push(fn); }
 W3.afterFirstFrame=afterFirstFrame;
@@ -8147,7 +8147,8 @@ function rvCoverOn(){ if(navigator.webdriver||$('rv-cover')) return; var c=docum
 function rvCoverOff(){ var c=$('rv-cover'); if(!c) return; c.style.opacity='0'; setTimeout(function(){ c.remove(); },500); }
 W3.rvCoverOff=rvCoverOff;
 window.closeWelcome=closeWelcome;
-document.addEventListener('click',function(e){ var x=e.target&&e.target.closest&&e.target.closest('#ob-go'); if(x){ W3._rvNext=true; rvCoverOn(); setTimeout(function(){ var w=$('welcome'); if(w&&w.classList.contains('on')) rvCoverOff(); },350); } },true);   // form error (no city / sex) — welcome stays, cover goes
+document.addEventListener('pointerdown',function(e){ var x=e.target&&e.target.closest&&e.target.closest('#ob-go'); if(x){ W3._rvTap=false; rvCoverOn(); setTimeout(function(){ if(!W3._rvTap) rvCoverOff(); },1500); } },true);   // cover from the first touch; finger slid off (no click) — cover goes
+document.addEventListener('click',function(e){ var x=e.target&&e.target.closest&&e.target.closest('#ob-go'); if(x){ W3._rvNext=true; W3._rvTap=true; rvCoverOn(); setTimeout(function(){ var w=$('welcome'); if(w&&w.classList.contains('on')) rvCoverOff(); },350); } },true);   // form error (no city / sex) — welcome stays, cover goes
 document.addEventListener('click',function(e){ var x=e.target&&e.target.closest&&e.target.closest('#s-me .orbclab'); if(x) W3.reveal(getActive()); });
 
 /* ==== Удержание (Саша 07.10): после открытия — мягкая просьба об утреннем уведомлении; «Поделиться именем»; «Сфера дня» ==== */
