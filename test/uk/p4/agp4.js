@@ -35,18 +35,18 @@
     'p4.pair_cards': "Відкрито за вашою парою", 'p4.pair_cards_none': "Відкритих карток для цієї сфери немає — вони в розборі пари.",
     'p4.pair_full_line': "У розборі пари: синастрія, зв’язки систем, ярус, гарячі точки, рекомендації для вас обох, вердикт.",
     'p4.pair_buy': "Розбір пари — {price}", 'p4.pair_buy_note': "{price} одноразово: 12 сфер пари, тло на 12 місяців, вердикт союзу та PDF. Не підписка.",
-    'p4.pair_minor': "Розбір пари доступний, коли обом є 18.", 'p4.pair_final': "Підсумок: гарячі точки, тло на рік, вердикт союзу",
+    'p4.pair_minor': "Розбір пари доступний, коли обом виповнилося 18.", 'p4.pair_final': "Підсумок: гарячі точки, тло на рік, вердикт союзу",
     'p4.pair_wait_title': "Розбір пари готується", 'p4.pair_wait_toc': "Розбір пари готується: сфери з’являться у міру готовності.",
     // #15: «части 4–10» словами; пара не-партнёров — без романтики и слова «союз» (черновики, итог — #16 в UI_RU)
     'p4.buy_note2': "{price} одноразово: усі 46 сфер, зв’язки між системами, план на рік, гарячі точки, підсумковий вердикт і PDF. Не підписка.",
     'p4.pair_lead_other': "Що виникає між вами: де ви підсилюєте одне одного, а де тертя. Без відсотків і прогнозів.",
     'p4.pair_spheres_other': "Сфери пари", 'p4.pair_buy_note_other': "{price} одноразово: сфери пари, тло на 12 місяців, підсумок і PDF. Не підписка.",
     'p4.pair_final_other': "Підсумок: гарячі точки й тло на рік",
-    'p4.about': "Про що ця сфера", 'p4.systems': "Дивляться системи: {list}", 'p4.systems_nt': "Без часу народження — без Дизайну людини та домів гороскопа.",
+    'p4.about': "Про що ця сфера", 'p4.systems': "Розглядають системи: {list}", 'p4.systems_nt': "Без часу народження — без Дизайну людини та домів гороскопа.",
     'p4.pair_full_line2': "У розборі пари: порівняння натальних карт, зв’язки систем, наскільки надійний кожен висновок, гарячі точки, поради для вас обох і підсумок.",
     'p4.cards_more': "Ще картки твоєї карти · {n}",
     'p4.pair_mutual': "Одне для одного",
-    'p4.teaser3': "За твоєю картою до теми «{title}» уже йдуть розрахунки {n} різних систем: {list}. Розбір зведе їх в один текст: де вони збігаються — опора, де розходяться — твій вибір, і до кожного висновку — що робити.",
+    'p4.teaser3': "За твоєю картою до теми «{title}» уже надходять розрахунки {n} різних систем: {list}. Розбір зведе їх в один текст: де вони збігаються — опора, де розходяться — твій вибір, і до кожного висновку — що робити.",
     'p4.todo_label': "Що з цим робити", 'p4.teaser_h': "Що зійдеться в повному розборі", 'p4.teaser2': "У розборі теми «{title}» ці системи зводяться в один текст: де вони збігаються — опора, де розходяться — твій вибір, і до кожного висновку — що робити.", 'p4.teaser_tail': "Розбір зведе це в один текст: де джерела згодні, де сперечаються і що з цим робити.",
     'p4.pair_only': "Лише в розборі пари",
     'p4.rel_q': "Хто це тобі? Від цього залежать назви сфер пари.",
@@ -156,7 +156,7 @@
       list.forEach(function (s) {
         var open = full || (sample && s.id === c.sample_id);
         h += '<div class="agp-row' + (open ? ' open' : '') + '" data-open="' + esc(s.id) + '" role="button" tabindex="0">' + (opts && opts.groups ? '' : '<span class="n">' + esc(s.id) + '</span>') + '<span class="tt">' + esc(s.title) + '</span>'
-          + (tiers[s.id] ? badge(tiers[s.id]) : '') + (open || salesOff ? '' : '<span class="lk" aria-label="полный текст — в разборе">' + LOCK + '</span>') + '</div>';
+          + (tiers[s.id] ? badge(tiers[s.id]) : '') + (open || salesOff ? '' : "<span class=\"lk\" aria-label=\"повний текст — у розборі\">" + LOCK + '</span>') + '</div>';
       });
     });
     if (!full && !salesOff) h += buyHTML();
@@ -493,7 +493,7 @@
         var s = sph(s0, D);
         if (!owned && !pairCards(s, keys).length) { only.push(s); return; }
         h += '<div class="agp-row' + (owned ? ' open' : '') + '" data-psph="' + esc(s.id) + '" role="button" tabindex="0"><span class="tt">' + esc(s.title) + '</span>'
-          + (owned || salesOff ? '' : '<span class="lk" aria-label="полный текст — в разборе пары">' + LOCK + '</span>') + '</div>';
+          + (owned || salesOff ? '' : "<span class=\"lk\" aria-label=\"повний текст — у розборі пари\">" + LOCK + '</span>') + '</div>';
       });
       if (only.length) h += '<div class="agp-sec">' + esc(tx('p4.pair_only')) + '</div><p class="agp-note" data-only="' + only.length + '">' + only.map(function (s) { return esc(s.title); }).join(' · ') + '</p>';
       if (owned && isSamplePair(a, b)) h += '<div class="agp-row open" data-psph="final" role="button" tabindex="0"><span class="n">·</span><span class="tt">' + esc(tx(romantic(D) ? 'p4.pair_final' : 'p4.pair_final_other')) + '</span></div>';
