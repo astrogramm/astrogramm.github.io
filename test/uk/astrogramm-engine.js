@@ -802,7 +802,7 @@ function vimshottariCore(jdB, tRef) {
 
 const NAME_BRANCHES = '子丑寅卯辰巳午未申酉戌亥';
 const NAME_ANIMALS = ["Щур", "Бик", "Тигр", "Кролик", "Дракон", "Змія", "Кінь", "Коза", "Мавпа", "Півень", "Собака", "Кабан"];
-const NAME_FEMININE = ["Змія", "Коза", "Щур", "Кінь", "Мавпа", "Собака"];
+const NAME_FEMININE = ["Змія", "Коза", "Мавпа", "Собака"];
 const NAME_ELEMENT = {"甲": ["Дерев’яний", "Дерев’яна"], "乙": ["Дерев’яний", "Дерев’яна"], "丙": ["Вогняний", "Вогняна"], "丁": ["Вогняний", "Вогняна"], "戊": ["Земляний", "Земляна"], "己": ["Земляний", "Земляна"], "庚": ["Металевий", "Металева"], "辛": ["Металевий", "Металева"], "壬": ["Водяний", "Водяна"], "癸": ["Водяний", "Водяна"]};
 const NAME_ROLE = ["Витік", "Слово", "Сновидець", "Розквіт", "Іскра", "Провідник", "Майстер", "Творець", "Джерело", "Опора", "Вигадник", "Мудрість", "Мандрівник", "Маг", "Висота", "Шукач", "Лоцман", "Межа", "Вир", "Світоч"];
 const NAME_ACTION = ["Починаєш з нуля те, чого ще не було.", "Знаходиш слова для того, що важко сказати.", "Бачиш можливість заздалегідь і збираєш сили в тиші.", "Садиш ідею й терпляче доводиш її до плоду.", "Відчуваєш тілом, що правильно, і тримаєш свою межу.", "Знайомиш людей і зв’язуєш різні кола.", "Доводиш справу руками до результату, який можна помацати.", "Робиш красиво те, за що берешся.", "Оновлюєш звичне й відчуваєш настрій людей.", "Залишаєшся поруч, коли важко, і тримаєш обіцянки.", "Перетворюєш важке на гру й знаходиш неочевидний вихід.", "Робиш свій вибір і вмієш його пояснити.", "Прокладаєш шлях там, де дороги ще немає, і розповідаєш про нього.", "Дієш тихо й без зайвих рухів.", "Бачиш картину цілком, відійшовши на крок.", "Ставиш чесні запитання й ідеш до відповіді.", "Помічаєш збіги й обираєш курс за ними.", "Називаєш чесно й дбайливо те, що бачиш.", "Струшуєш застояне й запускаєш зміни.", "Ділишся світлом рівно й щедро."];
@@ -1094,8 +1094,8 @@ function normName(s) {
     .replace(/\s+/g, ' ').trim();
 }
 
-const TRANSLIT = { а: 'a', б: 'b', в: 'v', г: 'g', ґ: 'g', д: 'd', е: 'e', є: 'ye', ж: 'zh', з: 'z', и: 'i', і: 'i', ї: 'yi',
-  й: 'y', к: 'k', л: 'l', м: 'm', н: 'n', о: 'o', п: 'p', р: 'r', с: 's', т: 't', у: 'u', ф: 'f', х: 'kh', ц: 'ts',
+const TRANSLIT = { а: 'a', б: 'b', в: 'v', г: 'g', ґ: 'g', д: 'd', е: 'e', є: 'ye', ж: 'zh', з: 'z', "ї": 'i', і: 'i', ї: 'yi',
+  й: 'y', к: 'k', л: 'l', м: 'm', н: 'n', о: 'o', п: 'p', р: 'r', с: 's', т: 't', у: 'u', ф: 'f', х: 'kh', "ць": 'ts',
   ч: 'ch', ш: 'sh', щ: 'shch', ъ: '', ы: 'y', ь: '', э: 'e', ю: 'yu', я: 'ya', ў: 'u' };
 const translit = s => [...s].map(c => (c in TRANSLIT ? TRANSLIT[c] : c)).join('');
 const CYR = /[а-яёіїєґў]/;
@@ -1143,10 +1143,10 @@ export function searchCities(query, limit = 10) {
       e.keys.forEach((k, i) => {
         if (latinOnly && CYR.test(k)) return;
         let s = k === qq && qq.length >= 4 ? 3 : k.startsWith(qq) ? 2 : k.includes(' ' + qq) ? 1 : -1;
-        if (s >= 0 && !qUkr && NOT_RU.test(k)) s -= 0.25;       // among equal matches show a Russian-letter alias
+        if (s >= 0 && /[ыэъёҳәүөҗңһӳӱјњљћђџѓќѕæ]/.test(k)) s -= 0.25;       // among equal matches show a Russian-letter alias
         if (s > best) { best = s; shown = e.names[i]; }
       });
-      if (best >= 0) hits.push([best, e.c[6] * (e.c[5] === PREFER_CC ? PREFER_WEIGHT : 1), e, shown]);
+      if (best >= 0) { const ua = e.names.find(n => /[іїєґ]/.test(n) && !/[ҳәүөҗңһӳӱјњљћђџѓќѕæ]/.test(n)); if (ua && CYR.test(normName(shown || ''))) shown = ua; hits.push([best, e.c[6] * (e.c[5] === PREFER_CC ? PREFER_WEIGHT : 1), e, shown]); }
     }
     return hits;
   };
@@ -1159,8 +1159,8 @@ export function searchCities(query, limit = 10) {
   // Shown name: a Russian query → the Russian name of the city (field 8, engine/tools/city_ru.py), whatever alias matched;
   // a Ukrainian query (і ї є ґ) → the alias the person typed; a Latin query → the GeoNames name.
   return hits.slice(0, limit).map(([, , e, shown]) =>
-    cityOut(e, !CYR.test(q) ? null : (!UKR.test(q) && e.c[8]) ? e.c[8]
-      : (CYR.test(normName(shown)) && (UKR.test(q) || !NOT_RU.test(normName(shown)))) ? shown : null));   // «Хангџоу» → Hangzhou
+    cityOut(e, !CYR.test(q) ? null : e.c[8] ? e.c[8]
+      : (CYR.test(normName(shown)) && !/[ыэъёҳәүөҗңһӳӱјњљћђџѓќѕæ]/.test(shown)) ? shown : null));   // «Хангџоу» → Hangzhou
 }
 
 /** Nearest catalog city (for coordinates typed by hand: its IANA zone). distance_km is great-circle. */
