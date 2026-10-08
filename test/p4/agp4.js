@@ -131,10 +131,13 @@
   function founder(profile) { return isSample(profile); }
 
   // ------------------------------------------------------------------ table of contents (46 spheres by kit)
+  function sampleCard() {
+    return '<div class="agp-sample" data-sample-open="1" role="button" tabindex="0"><div class="agp-cap">Пример полного текста · карта основателя</div><b>Сфера ' + esc(cat.sample_id) + ' — ' + esc(cat.sample_title || '') + '</b><div class="agp-note">Так выглядит сфера целиком: все системы вместе — в чём совпадают и о чём спорят, что делать и итог.</div></div>';
+  }
   function tocHTML(c, profile, opts) {
     var sample = isSample(profile), a = A(), salesOff = a ? !a.purchases.buttonsVisible() : true, full = owned(profile);
     var tiers = sample ? (c.sample_tiers || {}) : {};
-    var h = '<div class="agp-sample" data-open="' + esc(c.sample_id) + '" data-sample="1" role="button"><div class="agp-cap">' + (iapOn() ? 'Пример разбора' : 'Пример сферы') + ' · карта основателя</div><b>Сфера ' + esc(c.sample_id) + ' — ' + esc(c.sample_title) + '</b><div class="agp-note">' + (full ? 'Так выглядит каждая из 46 сфер.' : iapOn() ? 'Открыта бесплатно: так выглядит каждая из 46 сфер.' : 'Так будут выглядеть все 46 сфер, когда появится полный текст.') + '</div></div>';   // #15, баг 9; 1.0: the reading is not a product yet (review 06.10c)
+    var h = '<div class="agp-sample" data-open="' + esc(c.sample_id) + '" data-sample="1" role="button"><div class="agp-cap">' + (iapOn() ? 'Пример разбора' : 'Пример сферы') + ' · карта основателя</div><b>Сфера ' + esc(c.sample_id) + ' — ' + esc(c.sample_title) + '</b><div class="agp-note">' + (full ? 'Так выглядит каждая из 46 сфер.' : iapOn() ? 'Открыта бесплатно: так выглядит каждая из 46 сфер.' : 'Так выглядит полный текст сферы.') + '</div></div>';   // #15, баг 9; 1.0: the reading is not a product yet (review 06.10c)
     if (full && !sample) h += '<p class="agp-note">' + esc(tx('p4.wait_toc')) + '</p>';
     else if (!full && !(opts && opts.groups)) h += '<p class="agp-note">' + esc(tx('p4.free_note')) + '</p>';   // #15 (A48): в пути «Карты» это уже сказано вводной шага 5
     // #14: opts.groups — показ по шести группам вопросов человека ({title, what, ids}); без него — киты шаблона v2.1
@@ -209,6 +212,7 @@
     if (s.hot && s.hot.length) {
       h += '<div class="agp-sec">Что делать</div>';
       s.hot.forEach(function (p) {
+        if (p.title && p.body) { h += '<div class="agp-hot"><b>' + esc(p.title) + '</b>' + esc(cap(p.body)) + (p.action ? '<div class="act">Действие: ' + esc(p.action) + '</div>' : '') + '</div>'; return; }   // v3 format
         var name = p.point && p.point.length <= 40 && p.text && p.text.indexOf(p.point + ':') === 0 ? p.point : '';
         var body = name ? p.text.slice(name.length + 1).split(/ — | Действие:/)[0].trim() : (p.action ? p.point : p.text);
         h += '<div class="agp-hot">' + (name ? '<b>' + esc(name) + '</b>' : '') + esc(cap(body)) + (p.action ? '<div class="act">Действие: ' + esc(p.action) + '</div>' : '') + '</div>';
@@ -229,6 +233,7 @@
     el.addEventListener('click', function (e) {
       if (e.target.getAttribute && e.target.getAttribute('data-x')) { close(); return; }
       var yb = e.target.closest && e.target.closest('.agp-yb'); if (yb) tierTip(yb);
+      var so = e.target.closest && e.target.closest('[data-sample-open]'); if (so && cat) { open(cat.sample_id, { sample: true }); return; }
       var dl = e.target.closest && e.target.closest('[data-agp-dispute]');   // «подробнее в споре» — шаг 4 «Карты» (спор карты)
       if (dl) { e.preventDefault(); close(); try { if (W.W3 && W.W3.pathOpen) W.W3.pathOpen(4); } catch (x) {} }
     });
@@ -338,6 +343,7 @@
     // 1.0: the next version is promised once per sphere (review 06.10d) — the teaser / empty-sphere note, else p4.full_line at the bottom
     var soonSaid = !iapOn() && (!cards.length || (!synthOn() && !!teaserText(cards, s, profile)));
     if (!soonSaid) h += '<p class="agp-note" style="margin-top:14px">' + esc(tx('p4.full_line')) + '</p>';
+    if (!iapOn() && cat && cat.sample_id && s.id !== cat.sample_id) h += sampleCard();   // audit 08.10: instead of «скоро» — open the full text of one sphere (founder chart)
     if (!salesOff) h += buyHTML();
     return h;
   }
@@ -356,7 +362,10 @@
           j = Object.assign({}, j, { title: s.title, kit_title: s.kit_title }); screen(sphereHTML(j), j.title); };   // название — как в списке сфер
         if (testOn() && founder(profile)) return founderJSON(id).then(show)
           .catch(function () { screen(waitHTML(s, profile), s.title); });
-        if (testOn()) { screen(waitHTML(s, profile), s.title); return; }   // another chart: right after a purchase — «готовится»
+        if (testOn()) {   // audit 08.10: test mode on another chart — no false «в очереди»; the founder's sphere as an honest example
+          return founderJSON(id).then(function (j) { j = Object.assign({}, j, { title: s.title, kit_title: s.kit_title });
+            screen(sphereHTML(j, { caption: 'Пример полного текста · карта основателя. Для этой карты полный разбор не заказан' }), j.title); })
+            .catch(function () { screen(waitHTML(s, profile), s.title); }); }
         return sphereJSON(id, profile, false).then(show)
           .catch(function () { screen(waitHTML(s, profile), s.title); });   // bought, text not delivered yet → honest status
       }

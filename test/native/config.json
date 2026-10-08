@@ -8,7 +8,7 @@
   "support": "https://kovalbekbek-dodik.github.io/astrogramm-legal/ru/support.html"
  },
  "etaDays": 7,
- "storeBuild": true,
+ "storeBuild": false,
  "iap": false,
  "synth": false
 }
