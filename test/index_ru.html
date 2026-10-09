@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="ru"><head><script>/* ?p=ДАТА_ЧЧ:ММ_ПОЛ_Город — тестовая карта с самого начала (штаб #0, 09.10) */try{var _m=/[?&]p=([^&]+)/.exec(location.search);if(_m){var _v=decodeURIComponent(_m[1]).split("_");localStorage.clear();sessionStorage.clear();var _ok=function(){return window.W3&&W3.citySearch&&W3.cityReg&&W3.saveMine&&W3.citiesReady&&typeof setActive==="function";};var _tm=setInterval(function(){if(!_ok())return;clearInterval(_tm);try{var g=W3.citySearch(_v[3]||"Харьков",1)[0];if(!g)return;var d=new Date(),k=d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);var nt=!_v[1]||_v[1]==="nt";var p={n:"Моя карта",d:_v[0],t:nt?"12:00":_v[1],c:W3.cityReg(g),g:g,s:_v[2]==="m"?"m":"f",nt:nt,own:1,ca:k};W3.saveMine(p);setActive(p);localStorage.setItem("ag_seen","1");history.replaceState(null,"",location.pathname);location.reload();}catch(e){}},200);}}catch(e){}</script><script>/* Astrogramm language switch (08.10.2026): index.html — Ukrainian (default), index_ru.html — Russian. The choice is kept
+<!DOCTYPE html><html lang="ru"><head><meta name="robots" content="noindex,nofollow"><script>/* ?new */try{if(/[?&]new\b/.test(location.search)){localStorage.clear();sessionStorage.clear();history.replaceState(null,"",location.pathname);}}catch(e){}</script><script>/* ?p=ДАТА_ЧЧ:ММ_ПОЛ_Город — тестовая карта с самого начала (штаб #0, 09.10) */try{var _m=/[?&]p=([^&]+)/.exec(location.search);if(_m){var _v=decodeURIComponent(_m[1]).split("_");localStorage.clear();sessionStorage.clear();var _ok=function(){return window.W3&&W3.citySearch&&W3.cityReg&&W3.saveMine&&W3.citiesReady&&typeof setActive==="function";};var _tm=setInterval(function(){if(!_ok())return;clearInterval(_tm);try{var g=W3.citySearch(_v[3]||"Харьков",1)[0];if(!g)return;var d=new Date(),k=d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);var nt=!_v[1]||_v[1]==="nt";var p={n:"Моя карта",d:_v[0],t:nt?"12:00":_v[1],c:W3.cityReg(g),g:g,s:_v[2]==="m"?"m":"f",nt:nt,own:1,ca:k};W3.saveMine(p);setActive(p);localStorage.setItem("ag_seen","1");history.replaceState(null,"",location.pathname);location.reload();}catch(e){}},200);}}catch(e){}</script><script>/* Astrogramm language switch (08.10.2026): index.html — Ukrainian (default), index_ru.html — Russian. The choice is kept
    in localStorage 'ag_lang'; charts and settings are shared (same origin). A row in the menu and a quiet link on the
    first screen. Injected by make_uk.cjs into both pages with LANG set. */
 (function(LANG){
@@ -1181,6 +1181,24 @@ body.ag-test::after{content:'тест · полный доступ';position:fix
 /* audit F-A С14: верхняя строка с «Назад» не просвечивает — текст под ней размыт и закрыт почти сплошным фоном */
 .orbsheet .orbbar,html body .agp-scr .agp-top{background:linear-gradient(180deg,rgba(26,14,53,.97) 80%,rgba(26,14,53,0));-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);padding-bottom:14px}
 .orbback,html body .agp-scr .agp-top button[data-x]{background:linear-gradient(180deg,#46307f,#28184e)}
+/* тест Алины 09.10 (штаб #0): отступы внутри карточек-аккордеонов, бейдж «открыто», шапка «Люди», форма «Добавить человека» */
+html body details.pexp{padding:0 14px}
+html body details.pexp>summary{padding:16px 2px 12px}
+html body .pexb{display:grid;gap:8px;padding:0 0 14px}
+html body .w3sec{border-top:1px solid var(--am-line);border-bottom:1px solid var(--am-line)}
+html body .w3sec+.w3sec{margin-top:8px}
+html body .w3sec>summary{padding:14px 44px 14px 16px}
+html body .w3sec>summary::after{right:16px;top:13px}
+html body .w3sb{padding:0 14px 14px}
+html body .pit .tier{display:inline-flex;align-items:center;justify-content:center;line-height:1;padding:5px 9px;font-size:10px;letter-spacing:.03em}
+html body .pplhead{align-items:center}
+html body .pplhead .orbttl{line-height:1;padding-top:4px}
+html body #l-form .fform{margin-top:10px;padding:18px 16px}
+html body .fform .frow{margin-bottom:18px}
+html body .fform .frow>label:first-child,html body .fform .w3lbl{margin-bottom:8px}
+html body #l-notime{-webkit-appearance:none;appearance:none;width:20px;height:20px;margin:0;border:1.5px solid var(--am-gold,#D9B967);border-radius:6px;background:transparent;position:relative;flex:none}
+html body #l-notime:checked{background:var(--am-gold,#D9B967)}
+html body #l-notime:checked::after{content:"";position:absolute;left:6px;top:2px;width:5px;height:10px;border:solid #1a0e35;border-width:0 2px 2px 0;transform:rotate(45deg)}
 </style>
 </head><body>
 <div class="stars" id="st"></div>
