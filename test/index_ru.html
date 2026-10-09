@@ -5788,7 +5788,7 @@ if(agn()&&AGN.ready&&AGN.ready.then) AGN.ready.then(afterBridge,afterBridge);
    после первого кадра; (2) центр ленты ставит ResizeObserver после естественной раскладки кадра, без чтения offsetLeft в коде
    отрисовки (принудительная раскладка); (3) контекст года (365 баллов) до первого кадра берётся из сохранённого, сам расчёт —
    после первого кадра частями по месяцу; разошлось — сохраняем новый и перерисовываем. Тексты и расчёт не меняются. */
-var AG_BUILD='ef38ae1e521c';                     // make_v12: хэш страницы — другая сборка = другой ключ сохранённого контекста
+var AG_BUILD='82dd5d60baaf';                     // make_v12: хэш страницы — другая сборка = другой ключ сохранённого контекста
 var _aff=[], _affDone=false;
 function afterFirstFrame(fn){ if(_affDone){ setTimeout(fn,0); return; } _aff.push(fn); }
 W3.afterFirstFrame=afterFirstFrame;
@@ -8532,7 +8532,8 @@ window.renderLinks=renderLinks;
   }
   document.addEventListener('click',function(e){ var x=e.target&&e.target.closest&&e.target.closest('#orb-send'); if(!x) return;
     var txt=shortLine(); if(!txt){ W3.toast('Сначала введи дату рождения'); return; }
-    try{ if(navigator.share){ navigator.share({text:txt}).catch(function(){}); return; } }catch(err){}
+    // ведёт в личку Саши в Telegram (CONTACT.tg = t.me/astrogram_adm) с готовым текстом; отправляет сам человек в Telegram
+    try{ var w=window.open(CONTACT.tg+'?text='+encodeURIComponent(txt),'_blank','noopener'); if(w) return; }catch(err){}
     copy(txt,function(ok){ W3.toast(ok?'Скопировано — вставь в чат с Сашей':'Не получилось скопировать'); if(!ok) sheet(txt); }); });
   var _rm=renderMe;
   renderMe=function(){ var r=_rm.apply(this,arguments);
