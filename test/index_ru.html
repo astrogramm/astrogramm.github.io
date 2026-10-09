@@ -896,6 +896,12 @@ h1,h2,h3,.pname,.ttl{font-family:var(--font-display)}
 .orbstage svg.orbring{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
 .orbnode,.orbctr{position:absolute;left:0;top:0;border-radius:50%;background:var(--am-night);cursor:pointer;border:0;padding:0;touch-action:manipulation;
   transition:transform .5s cubic-bezier(.2,.8,.2,1),opacity .35s ease,box-shadow .3s ease}
+.orbband,.orbhole{position:absolute;border-radius:50%}
+.orbband{touch-action:none}
+.orbhole{touch-action:pan-y}
+.orbstage.spin .orbnode{transition:opacity .35s ease,box-shadow .3s ease!important}
+.orbnode{touch-action:none;-webkit-user-drag:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.orbnode img{-webkit-user-drag:none;pointer-events:none}
 .orbnode{box-shadow:0 0 0 1.2px rgba(184,156,255,.5),0 0 0 6px var(--am-night)}
 .orbnode.seen{box-shadow:0 0 0 2px var(--am-gold),0 0 0 6px var(--am-night)}
 .orbnode.hot{box-shadow:0 0 0 2.5px var(--am-lilac),0 0 0 6px var(--am-night),0 0 30px 6px rgba(184,156,255,.6)}
@@ -5782,7 +5788,7 @@ if(agn()&&AGN.ready&&AGN.ready.then) AGN.ready.then(afterBridge,afterBridge);
    после первого кадра; (2) центр ленты ставит ResizeObserver после естественной раскладки кадра, без чтения offsetLeft в коде
    отрисовки (принудительная раскладка); (3) контекст года (365 баллов) до первого кадра берётся из сохранённого, сам расчёт —
    после первого кадра частями по месяцу; разошлось — сохраняем новый и перерисовываем. Тексты и расчёт не меняются. */
-var AG_BUILD='a417eb90e028';                     // make_v12: хэш страницы — другая сборка = другой ключ сохранённого контекста
+var AG_BUILD='ef38ae1e521c';                     // make_v12: хэш страницы — другая сборка = другой ключ сохранённого контекста
 var _aff=[], _affDone=false;
 function afterFirstFrame(fn){ if(_affDone){ setTimeout(fn,0); return; } _aff.push(fn); }
 W3.afterFirstFrame=afterFirstFrame;
@@ -7673,26 +7679,85 @@ function orbDraw(stage,L,bloom){
   c.innerHTML=L.center.html; if(!L.center.go){ c.style.cursor='default'; c.tabIndex=-1; }
   stage.appendChild(c);
   var cl=document.createElement('div'); cl.className='orbclab'; cl.textContent=L.center.label; cl.style.left=(g.c-100)+'px'; cl.style.top=(g.c+cs/2+8)+'px'; stage.appendChild(cl);
-  var red=orbReduced();
+  var red=orbReduced(), nodes=[];
+  if(!red){   // #0b: кольцо крутится пальцем; полоса кольца — touch-action:none, середина и всё вне кольца — вертикальная прокрутка страницы
+    var bw=2*(g.R+ns/2+8), iw=2*(g.R-ns/2-8);
+    stage.insertAdjacentHTML('afterbegin','<div class="orbband" aria-hidden="true" style="width:'+bw+'px;height:'+bw+'px;left:'+(g.c-bw/2)+'px;top:'+(g.c-bw/2)+'px"></div>'
+      +'<div class="orbhole" aria-hidden="true" style="width:'+iw+'px;height:'+iw+'px;left:'+(g.c-iw/2)+'px;top:'+(g.c-iw/2)+'px"></div>');
+  }
+  var step=360/n;
+  function place(i,rot,home){
+    var o=nodes[i], ang=(step*i+rot-90)*Math.PI/180, x=g.c+g.R*Math.cos(ang), y=g.c+g.R*Math.sin(ang);
+    var lw=n>8?96:118, ly=y+ns/2+5; if(ly+30>g.W+24) ly=g.W+24-30;
+    var lx=Math.max(-10,Math.min(g.W-lw+10,x-lw/2));   // подпись не выходит за экран (390 px без прокрутки вбок)
+    o.b._home={x:x,y:y,s:ns}; o.b._ang=((step*i+rot)%360+360)%360;
+    if(home!==false) o.b.style.transform='translate('+(x-ns/2)+'px,'+(y-ns/2)+'px)';   // значки и подписи не поворачиваются — всегда прямые
+    o.lb.style.transform='translate('+lx+'px,'+ly+'px)';
+  }
   L.items.forEach(function(it,i){
-    var ang=(360*i/n-90)*Math.PI/180, x=g.c+g.R*Math.cos(ang), y=g.c+g.R*Math.sin(ang);
     var b=document.createElement('button'); b.type='button'; b.className='orbnode'+(it.seen?' seen':''); b.setAttribute('aria-label',it.aria||it.label);
     if(it.group) b.setAttribute('data-orbg',it.group); if(it.sphere) b.setAttribute('data-orbs',it.sphere); if(it.step) b.setAttribute('data-orbstep',it.step);
     b.style.width=b.style.height=ns+'px';
     b.innerHTML=it.slot?'<div class="orbslot"></div>':illo(it.img);
     if(it.slot) orbProbe(b,it.img);
-    var home='translate('+(x-ns/2)+'px,'+(y-ns/2)+'px)';
     var lb=document.createElement('div'); lb.className='orblab'+(n>8?' sm':''); lb.innerHTML='<span>'+esc(it.label)+'</span>';
-    var lw=n>8?96:118; lb.style.width=lw+'px';
-    var ly=y+ns/2+5; if(ly+30>g.W+24) ly=g.W+24-30;
-    var lx=Math.max(-10,Math.min(g.W-lw+10,x-lw/2));   // подпись не выходит за экран (390 px без прокрутки вбок)
-    lb.style.transform='translate('+lx+'px,'+ly+'px)';
+    lb.style.width=(n>8?96:118)+'px';
+    nodes.push({b:b,lb:lb}); place(i,0,false);
+    var x=b._home.x, y=b._home.y;
     if(bloom&&!red){ b.style.transform='translate('+(g.c-ns/2)+'px,'+(g.c-ns/2)+'px) scale(.2)'; b.style.opacity=0; lb.style.opacity=0;
-      setTimeout(function(){ b.style.transform=home; b.style.opacity=1; setTimeout(function(){ lb.style.opacity=1; },220); },40+i*28);
-    } else b.style.transform=home;
-    b._home={x:x,y:y,s:ns};
+      setTimeout(function(){ if(!b._spun) b.style.transform='translate('+(b._home.x-ns/2)+'px,'+(b._home.y-ns/2)+'px)'; b.style.opacity=1; setTimeout(function(){ lb.style.opacity=1; },220); },40+i*28);
+    } else b.style.transform='translate('+(x-ns/2)+'px,'+(y-ns/2)+'px)';
     stage.appendChild(b); stage.appendChild(lb);
   });
+  if(red||n<2) return;
+  orbSpin(stage,g,n,step,function(rot){ nodes.forEach(function(o,i){ o.b._spun=1; place(i,rot); }); });
+}
+/* #0b: вращение кольца — следует за пальцем/мышью, инерция с трением, мягкая доводка до ближайшего круга; тап (< 6 px) открывает как раньше */
+function orbSpin(stage,g,n,step,apply){
+  if(stage._spinOff) stage._spinOff();
+  var rot=0, v=0, raf=0, drag=null, moved=false, lastA=0, hist=[], snapT=null;
+  function ptrA(e){ var r=stage.getBoundingClientRect(); return Math.atan2(e.clientY-(r.top+g.c*r.height/g.W), e.clientX-(r.left+g.c*r.width/g.W))*180/Math.PI; }
+  function setRot(r){ rot=r; apply(rot); }
+  function stop(){ if(raf) cancelAnimationFrame(raf); raf=0; snapT=null; }
+  function tick(t){
+    if(!tick.t) tick.t=t; var dt=Math.min(40,t-tick.t); tick.t=t;
+    if(!snapT){
+      v*=Math.exp(-dt/320); setRot(rot+v*dt);
+      if(Math.abs(v)<0.03){ var tgt=Math.round(rot/step)*step; snapT={a:rot,b:tgt,t0:t,d:Math.min(520,180+Math.abs(tgt-rot)*9)}; }
+    } else {
+      var k=Math.min(1,(t-snapT.t0)/snapT.d), e=1-Math.pow(1-k,3); setRot(snapT.a+(snapT.b-snapT.a)*e);
+      if(k>=1){ setRot(snapT.b); stage.classList.remove('spin'); raf=0; tick.t=0; stage.setAttribute('data-orbrot',String(Math.round(((rot%360)+360)%360*100)/100)); return; }
+    }
+    raf=requestAnimationFrame(tick);
+  }
+  function down(e){
+    if(e.button>0||(e.pointerType==='mouse'&&e.buttons!==1)) return;
+    if(!e.target.closest||!(e.target.closest('.orbnode,.orblab,.orbband'))) return;
+    stop(); tick.t=0; stage.classList.add('spin');
+    drag={id:e.pointerId,x:e.clientX,y:e.clientY}; moved=false; lastA=ptrA(e); hist=[]; v=0;
+  }
+  function move(e){
+    if(!drag||e.pointerId!==drag.id) return;
+    if(!moved){ if(Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<6) return; moved=true; try{ stage.setPointerCapture(e.pointerId); }catch(x){} lastA=ptrA(e); }
+    var a=ptrA(e), d=a-lastA; if(d>180) d-=360; if(d<-180) d+=360; lastA=a;
+    setRot(rot+d); var t=performance.now(); hist.push([t,rot]); while(hist.length>2&&t-hist[0][0]>90) hist.shift();
+    if(e.cancelable) e.preventDefault();
+  }
+  function up(e){
+    if(!drag||e.pointerId!==drag.id) return; drag=null;
+    if(!moved){ stage.classList.remove('spin'); return; }
+    stage._noTap=1; setTimeout(function(){ stage._noTap=0; },60);
+    var h=hist, now=performance.now(); v=0;
+    if(h.length>1&&now-h[h.length-1][0]<80){ var dt=h[h.length-1][0]-h[0][0]; if(dt>5) v=(h[h.length-1][1]-h[0][1])/dt; }
+    v=Math.max(-2.5,Math.min(2.5,v)); tick.t=0; raf=requestAnimationFrame(tick);
+  }
+  function click(e){ if(stage._noTap){ e.stopImmediatePropagation(); e.preventDefault(); } }
+  function cancel(e){ if(drag&&e.pointerId===drag.id&&!moved){ drag=null; stage.classList.remove('spin'); } else up(e); }
+  stage.addEventListener('pointerdown',down); stage.addEventListener('pointermove',move); stage.addEventListener('pointerup',up);
+  stage.addEventListener('pointercancel',cancel); stage.addEventListener('click',click,true);
+  stage.addEventListener('dragstart',function(e){ e.preventDefault(); });
+  stage._spinOff=function(){ stop(); };
+  stage.setAttribute('data-orbrot','0');
 }
 // картинка сферы — только если файл уже есть (серия sphere/, Gemini); иначе остаётся пунктирный слот
 // список готовых файлов вшивает make_v12 (PR.sphere_img из app/assets/illustrations/sphere/) — без пробных запросов 404
