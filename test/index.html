@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="uk"><head><meta name="robots" content="noindex,nofollow"><script>window.AG_HIDE_TEST_MENU=true;</script><script>/* test build only: ?new — start from zero */try{if(/[?&]new\b/.test(location.search)){localStorage.clear();sessionStorage.clear();history.replaceState(null,"",location.pathname);}}catch(e){}</script><script>/* Astrogramm language switch (08.10.2026): index.html — Ukrainian (default), index_ru.html — Russian. The choice is kept
+<!DOCTYPE html><html lang="uk"><head><script>/* Astrogramm language switch (08.10.2026): index.html — Ukrainian (default), index_ru.html — Russian. The choice is kept
    in localStorage 'ag_lang'; charts and settings are shared (same origin). A row in the menu and a quiet link on the
    first screen. Injected by make_uk.cjs into both pages with LANG set. */
 (function(LANG){
@@ -5803,7 +5803,7 @@ if(agn()&&AGN.ready&&AGN.ready.then) AGN.ready.then(afterBridge,afterBridge);
    после первого кадра; (2) центр ленты ставит ResizeObserver после естественной раскладки кадра, без чтения offsetLeft в коде
    отрисовки (принудительная раскладка); (3) контекст года (365 баллов) до первого кадра берётся из сохранённого, сам расчёт —
    после первого кадра частями по месяцу; разошлось — сохраняем новый и перерисовываем. Тексты и расчёт не меняются. */
-var AG_BUILD='03a1faf6c1c4';                     // make_v12: хэш страницы — другая сборка = другой ключ сохранённого контекста
+var AG_BUILD='57190e56ee63';                     // make_v12: хэш страницы — другая сборка = другой ключ сохранённого контекста
 var _aff=[], _affDone=false;
 function afterFirstFrame(fn){ if(_affDone){ setTimeout(fn,0); return; } _aff.push(fn); }
 W3.afterFirstFrame=afterFirstFrame;
@@ -7241,6 +7241,16 @@ calCell12=function(key,d){ var h=_calCell25(key,d), D=DATA[key];
   if(D&&D.v==='тихий') h=h.replace(/<span class="th">[^<]*<\/span>/,'<span class="th">тихо</span>');
   return h; };
 W3.cleanStrong=function(d,i){ return !sharpHour(d,i)&&!inVoc(selKey,i); };
+// ЕДИНЫЙ источник часов дня (аудит F-A С3): «Твои часы» (orb.js), «Окна силы» во «Влияниях» и панель «Часы» читают одну выборку.
+// clean — чистые сильные, voc — сильные внутри «Луны без курса», sharp — сильные, но резкие, stop — стоп-часы, past — сколько сильных уже прошло (только сегодня)
+W3.hoursPlan=function(d){
+  var p={clean:[],voc:[],sharp:[],stop:[],past:0}, today=selKey===todayKey; if(!d||!d.hrs) return p;
+  d.hrs.forEach(function(c,i){
+    if(c==='strong'){ if(today&&hourPast(i)){ p.past++; return; } (inVoc(selKey,i)?p.voc:sharpHour(d,i)?p.sharp:p.clean).push(i); }
+    else if(c==='stop'&&!(today&&hourPast(i))) p.stop.push(i);
+  });
+  return p;
+};
 
 /* ---- 26. круг 10 приёмки: час, «Сейчас», «Влияния» и подбор дат говорят одно ---- */
 W3.toast=function(msg){ try{ var el=document.createElement('div'); el.className='w3toast'; el.setAttribute('role','status'); el.textContent=msg; document.body.appendChild(el);
@@ -7532,6 +7542,34 @@ function streakPush(){
 }
 W3.streakPush=streakPush;
 var _renderToday37=renderToday; renderToday=function(){ var r=_renderToday37.apply(this,arguments); try{ streakPush(); }catch(e){} return r; };
+
+/* ---- 38. audit F-A С4 (09.10): the verdict of the day and the advice of the day come from ONE main layer ----
+   The engine (dayPick12) picks the main card of the day among several layers (god of the day, branch, personal day, Moon house…); the advice
+   («Делай / Не стоит»), the story and «Итог дня» all speak from it. The v11 layer «господин дня» used to add its own advice on top
+   («принимать помощь» next to «помоги коллеге»). Now: «Итог дня» names the main theme; the god layer in «Влияния» only describes. */
+function mainTitle38(){
+  try{ var r=dayPick12(); if(!r||!APP_DAY[r.main]) return '';
+    if(/^day_branch_none/.test(r.main)) return "особливої теми в дня немає, тло рівне";
+    var t=noHz(APP_DAY[r.main].title||''), i=t.indexOf(': ');   // after the colon — the plain words; before it — the name of the layer
+    if(i>0) t=t.slice(i+2);
+    return t.charAt(0).toLowerCase()+t.slice(1); }catch(e){ return ''; }
+}
+var _topicCards38=topicCards;
+topicCards=function(d){
+  var c=_topicCards38.apply(this,arguments);
+  try{ var mt=mainTitle38(); if(mt) (c||[]).forEach(function(x){
+    if(x&&x.t==="Підсумок дня") x.txt=String(x.txt||'').replace(/Для тебе це [^.]*\.\s*/,"Головна тема дня — "+mt.replace(/\.$/,'')+'. ');
+  }); }catch(e){}
+  return c;
+};
+window.topicCards=topicCards;
+var _godText38=godText;
+godText=function(d){
+  var s=_godText38(d);
+  try{ if(mainTitle38()) s=String(s).split(/(?<=\.)\s+/)[0]; }catch(e){}   // the advice sentence is the main card's job
+  return s;
+};
+window.godText=godText;
 
 /* ================================================================ #18 · «Аметист top» + «Орбиты» (Саша 06.10, app/design-variants/amethyst/README.md)
    Вшивается make_v12.py внутрь слоя w3 после w15.js (пользуется его функциями). Расчёт и банк не трогает — только показ.
@@ -7867,12 +7905,16 @@ function orbStripCenter(smooth){
 }
 W3.orbStripCenter=orbStripCenter;
 function orbHours(d){
-  var strong=[], stop=[];
-  (d.hrs||[]).forEach(function(c,i){ if(c==='strong'&&(!W3.cleanStrong||W3.cleanStrong(d,i))) strong.push(i); else if(c==='stop') stop.push(i); });
+  // один источник часов дня — W3.hoursPlan (w15.js): та же выборка у «Окон силы» во «Влияниях» и у панели «Часы» (аудит F-A С3)
+  var plan=W3.hoursPlan?W3.hoursPlan(d):null, strong, stop, other=[];
+  if(plan){ strong=plan.clean; stop=plan.stop; other=plan.voc.concat(plan.sharp).sort(function(x,y){ return x-y; }); }
+  else { strong=[]; stop=[]; (d.hrs||[]).forEach(function(c,i){ if(c==='strong') strong.push(i); else if(c==='stop') stop.push(i); }); }
   var join=function(a){ var out=[], s=null, p=null; a.forEach(function(i){ if(s===null){ s=p=i; } else if(i===p+1){ p=i; } else { out.push([s,p]); s=p=i; } }); if(s!==null) out.push([s,p]);
     return out.map(function(r){ return HB_TIME[r[0]].split('–')[0]+'–'+HB_TIME[r[1]].split('–')[1]; }); };
-  var a=join(strong), b=join(stop);
-  var main=a.length?(a.length>1?a.slice(0,-1).join(', ')+" і "+a[a.length-1]:a[0])+" — сильні години":"Рівний хід увесь день — став важливе на ранок";
+  var a=join(strong), b=join(stop), o=join(other);
+  var main=a.length?(a.length>1?a.slice(0,-1).join(', ')+" і "+a[a.length-1]:a[0])+" — сильні години"
+    :o.length?"Чистих вікон сили немає: години "+o.join(', ')+" — для розмов, а не для стартів"
+    :(plan&&plan.past?"Вікна сили на сьогодні минули — наступні дивись у «Завтра»":"Окремих вікон сили немає — день рівний");
   return "<div class=\"orbhrs\" role=\"button\" tabindex=\"0\" data-orbhrs=\"1\"><em>Твої години</em><span>"+esc(main)+(b.length?"<small>Обережніше: "+esc(b.join(', '))+'</small>':'')+'</span></div>';
 }
 var _orbRenderToday=renderToday;
