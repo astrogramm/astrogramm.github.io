@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="uk"><head><meta name="robots" content="noindex,nofollow"><script>/* ?new */try{if(/[?&]new\b/.test(location.search)){localStorage.clear();sessionStorage.clear();history.replaceState(null,"",location.pathname);}}catch(e){}</script><script>/* ?p=ДАТА_ЧЧ:ММ_ПОЛ_Город — тестовая карта с самого начала (штаб #0, 09.10) */try{var _m=/[?&]p=([^&]+)/.exec(location.search);if(_m){var _v=decodeURIComponent(_m[1]).split("_");localStorage.clear();sessionStorage.clear();var _ok=function(){return window.W3&&W3.citySearch&&W3.cityReg&&W3.saveMine&&W3.citiesReady&&typeof setActive==="function";};var _tm=setInterval(function(){if(!_ok())return;clearInterval(_tm);try{var g=W3.citySearch(_v[3]||"Харьков",1)[0];if(!g)return;var d=new Date(),k=d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);var nt=!_v[1]||_v[1]==="nt";var p={n:"Моя карта",d:_v[0],t:nt?"12:00":_v[1],c:W3.cityReg(g),g:g,s:_v[2]==="m"?"m":"f",nt:nt,own:1,ca:k};W3.saveMine(p);setActive(p);localStorage.setItem("ag_seen","1");history.replaceState(null,"",location.pathname);location.reload();}catch(e){}},200);}}catch(e){}</script><script>/* Astrogramm language switch (08.10.2026): index.html — Ukrainian (default), index_ru.html — Russian. The choice is kept
+<!DOCTYPE html><html lang="uk"><head><meta name="robots" content="noindex,nofollow"><script>/* Astrogramm language switch (08.10.2026): index.html — Ukrainian (default), index_ru.html — Russian. The choice is kept
    in localStorage 'ag_lang'; charts and settings are shared (same origin). A row in the menu and a quiet link on the
    first screen. Injected by make_uk.cjs into both pages with LANG set. */
 (function(LANG){
@@ -5838,7 +5838,7 @@ if(agn()&&AGN.ready&&AGN.ready.then) AGN.ready.then(afterBridge,afterBridge);
    после первого кадра; (2) центр ленты ставит ResizeObserver после естественной раскладки кадра, без чтения offsetLeft в коде
    отрисовки (принудительная раскладка); (3) контекст года (365 баллов) до первого кадра берётся из сохранённого, сам расчёт —
    после первого кадра частями по месяцу; разошлось — сохраняем новый и перерисовываем. Тексты и расчёт не меняются. */
-var AG_BUILD='82dd5d60baaf';                     // make_v12: хэш страницы — другая сборка = другой ключ сохранённого контекста
+var AG_BUILD='ca8be260edd9';                     // make_v12: хэш страницы — другая сборка = другой ключ сохранённого контекста
 var _aff=[], _affDone=false;
 function afterFirstFrame(fn){ if(_affDone){ setTimeout(fn,0); return; } _aff.push(fn); }
 W3.afterFirstFrame=afterFirstFrame;
@@ -7618,6 +7618,15 @@ godText=function(d){
 };
 window.godText=godText;
 
+/* сайт приложения (штаб #0, 09.10): ссылка «открыть» в тексте для Саши; ?new — чистый старт, ?p=ДАТА_ЧЧ:ММ_ПОЛ_Город — карта с самого начала */
+var AG_SITE='https://astrogramm.github.io/';
+(function(){ try{ var q=location.search||''; if(/[?&]new\b/.test(q)){ localStorage.clear(); sessionStorage.clear(); history.replaceState(null,'',location.pathname); return; }
+  var m=/[?&]p=([^&]+)/.exec(q); if(!m) return; var v=decodeURIComponent(m[1]).split('_'); localStorage.clear(); sessionStorage.clear();
+  var ok=function(){ return window.W3&&W3.citySearch&&W3.cityReg&&W3.saveMine&&W3.citiesReady&&typeof setActive==='function'; };
+  var tm=setInterval(function(){ if(!ok()) return; clearInterval(tm); try{ var g=W3.citySearch(v[3]||"Харків",1)[0]; if(!g) return;
+    var d=new Date(), k=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); var nt=!v[1]||v[1]==='nt';
+    var p={n:'Моя карта',d:v[0],t:nt?'12:00':v[1],c:W3.cityReg(g),g:g,s:v[2]==='m'?'m':'f',nt:nt,own:1,ca:k};
+    W3.saveMine(p); setActive(p); localStorage.setItem('ag_seen','1'); history.replaceState(null,'',location.pathname); location.reload(); }catch(e){} },200); }catch(e){} })();
 /* ================================================================ #18 · «Аметист top» + «Орбиты» (Саша 06.10, app/design-variants/amethyst/README.md)
    Вшивается make_v12.py внутрь слоя w3 после w15.js (пользуется его функциями). Расчёт и банк не трогает — только показ.
    • меню — две вкладки «Карта» (первая) и «Календарь», свайп между ними;
@@ -8578,6 +8587,7 @@ window.renderLinks=renderLinks;
     var nm='';
     try{ nm=(AGE.chartJson(Object.assign({},inp,{ref:today()}))["ім’я карти"]||{})["ім’я"]||''; }catch(e){}
     return "Astrogramm — моя карта для розбору\n"+(p.n||'')+' · '+p.d.split('-').reverse().join('.')+' '+(unk?"час невідомий":(p.t||''))+' · '+(pl.name||'')+' · '+(p.s==='f'?'ж':'м')+(nm?' · '+nm:'')
+      +"\nвідкрити: "+AG_SITE+'?p='+p.d+'_'+(unk?'nt':p.t)+'_'+(p.s==='f'?'f':'m')+'_'+encodeURIComponent(String(pl.name||'').replace(/[_&?#]/g,' '))
       +'\nядро: python3 skills/astrogramm-core/chart.py '+p.d+' '+(unk?'12:00':p.t)+' "'+String(pl.name||"місце").replace(/["|]/g,'')+'|'+pl.lat+'|'+pl.lon+'|'+pl.tz+'" '+(p.s==='f'?'ж':'м')+' --json';
   }
   document.addEventListener('click',function(e){ var x=e.target&&e.target.closest&&e.target.closest('#orb-send'); if(!x) return;
