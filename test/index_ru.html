@@ -839,6 +839,9 @@ details.w3footd[open] .pcmore{display:none}
 .w3pushcard p{margin:0;font-size:13.5px;line-height:1.45;color:var(--text)}
 .w3pushcard .w3ghost{margin-top:10px;min-height:44px}
 .w3pushno{display:block;width:100%;margin-top:4px;min-height:40px;background:none;border:0;color:var(--muted,#8d86b3);font:500 13.5px var(--font-body);cursor:pointer}
+
+/* audit F-A С12: «+» у заголовка карточки пары — отступ и своя колонка, заголовок переносится, а не наезжает */
+.agp-acc>summary{gap:14px}.agp-card>summary .agp-hh{flex:1 1 auto;min-width:0}.agp-acc>summary:after{flex:none;width:28px;text-align:center}
 </style>
 <style id="v12-orb">
 /* Astrogramm v12 · #18 «Аметист top» + «Орбиты» (app/design-variants/amethyst/README.md, решения Саши 06.10)
@@ -1164,6 +1167,14 @@ body.ag-test::after{content:'тест · полный доступ';position:fix
 .cpbox small{opacity:.75;font-size:13px}
 .cpbox textarea{flex:1;min-height:40vh;width:100%;box-sizing:border-box;font:12px/1.4 ui-monospace,Menlo,monospace;background:rgba(255,255,255,.04);color:inherit;border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:10px}
 .cprow{display:flex;gap:8px}.cprow .w3btn{flex:1}
+
+/* audit F-A С13: сетка месяца — семь колонок строго по ширине экрана; длинная подпись обрезается, а не растягивает колонку («Нд» не уходит за край) */
+#grid,.wd7{grid-template-columns:repeat(7,minmax(0,1fr))}
+#grid .gc{min-width:0;overflow:hidden;padding:0 1px}
+#grid .gc .th,#grid .gc .an,#grid .gc .tr{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:8px;letter-spacing:-.01em;line-height:1.2}
+/* audit F-A С14: верхняя строка с «Назад» не просвечивает — текст под ней размыт и закрыт почти сплошным фоном */
+.orbsheet .orbbar,html body .agp-scr .agp-top{background:linear-gradient(180deg,rgba(26,14,53,.97) 80%,rgba(26,14,53,0));-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);padding-bottom:14px}
+.orbback,html body .agp-scr .agp-top button[data-x]{background:linear-gradient(180deg,#46307f,#28184e)}
 </style>
 </head><body>
 <div class="stars" id="st"></div>
@@ -2949,7 +2960,7 @@ const VOC=new Proxy({},{get:function(t,key){
 function renderFamily(){
  var people=loadPeople();
  var box=document.getElementById('fam-body'); if(!box)return;
- if(!people.length){box.innerHTML='<div style="font-size:12.5px;color:#9a93bd;text-align:center;padding:20px">Пока нет сохранённых людей. Добавь их в разделе «Связи» — они появятся здесь.</div>';return;}
+ if(!people.length){box.innerHTML='<div style="font-size:12.5px;color:#9a93bd;text-align:center;padding:20px">Пока нет сохранённых людей. Добавь их во вкладке «Люди» — они появятся здесь.</div>';return;}
  var out='';
  people.forEach(function(p){
   try{
@@ -5771,7 +5782,7 @@ if(agn()&&AGN.ready&&AGN.ready.then) AGN.ready.then(afterBridge,afterBridge);
    после первого кадра; (2) центр ленты ставит ResizeObserver после естественной раскладки кадра, без чтения offsetLeft в коде
    отрисовки (принудительная раскладка); (3) контекст года (365 баллов) до первого кадра берётся из сохранённого, сам расчёт —
    после первого кадра частями по месяцу; разошлось — сохраняем новый и перерисовываем. Тексты и расчёт не меняются. */
-var AG_BUILD='d43cc5ee2faa';                     // make_v12: хэш страницы — другая сборка = другой ключ сохранённого контекста
+var AG_BUILD='a417eb90e028';                     // make_v12: хэш страницы — другая сборка = другой ключ сохранённого контекста
 var _aff=[], _affDone=false;
 function afterFirstFrame(fn){ if(_affDone){ setTimeout(fn,0); return; } _aff.push(fn); }
 W3.afterFirstFrame=afterFirstFrame;
@@ -8027,10 +8038,12 @@ function orbPeopleTop(){
   var h='<div id="ppl-top"><div class="pplhead"><h1 class="orbttl">Люди</h1><button class="pplplus" type="button" data-ppladd="1" aria-label="Добавить человека">+</button></div>'
     +'<p class="orblead">'+(L.length?'Цвет кольца — каким будет день у человека сегодня. Нажми — откроется его карта.':'Добавь близких — увидишь их карты, их день и что возникает между вами. Добавляй тех, кто не против.')+'</p>'
     +(soon.length?'<div class="pplsoon"><b>Скоро</b>'+soon.map(function(t){ return '<div>'+esc(t)+'</div>'; }).join('')+'</div>':'')
-    +(L.length?'<div class="pplgrid">'+L.map(pplCard).join('')+'</div><div class="pplmng">Изменить или удалить — в списке ниже</div>':'')+'</div>';
+    +(L.length?'<div class="pplgrid">'+L.map(pplCard).join('')+'</div>':'')+'</div>';
   s.insertAdjacentHTML('afterbegin',h);
   // ревью 19: без людей — без «Сегодня у всех» и второй пустой надписи; строки списка — без точки в начале, «…» → «изменить»
   var bf=$('btn-family'); if(bf) bf.style.display=L.length?'':'none';
+  // audit F-A С11: каждый человек показан один раз — карточкой; старый список скрыт, его действия («вы вдвоём», «изменить») — в карточке человека
+  var lk=s.querySelector('.links'); if(lk) lk.style.display=L.length?'none':'';
   var em=s.querySelector('.empty'); if(em) em.style.display=L.length?'':'none';
   s.querySelectorAll('.lrow .linfo span').forEach(function(sp){ sp.innerHTML=sp.innerHTML.replace(/(<\/b>)\s*·\s*·\s*/,'$1 · ').replace(/^\s*·\s*/,''); });
   s.querySelectorAll('.lrow [data-ldel]').forEach(function(x){ if(x.textContent==='…') x.textContent='изменить'; });
@@ -8054,7 +8067,8 @@ function pplOpen(i){
     +(d?'<div class="pplbox"><span class="pplsc" style="color:'+c+'">'+d.sc+'</span><b>Сегодня · '+esc(p.n)+'</b><p>'+esc((d.v?d.v.charAt(0).toUpperCase()+d.v.slice(1)+' день':'')+(d.gt?' — '+ru12(d.gt):''))+'.</p></div>':'')
     +'<div class="pplbox"><b>Вы вдвоём</b>'+(two?'<p>'+esc(two)+'</p>':'<p>Что возникает между вами, где легко и где трение — без баллов «совместимости».</p>')+'<button class="orbbtn main" type="button" data-pplpair="'+i+'">Открыть «Вы вдвоём» ›</button></div>'
     +'<label class="pplbox pplnf"><span>Сообщать в утреннем уведомлении<small>время и включение — в меню ☰</small></span><input type="checkbox" data-pplnf="'+i+'"'+(p.nf?' checked':'')+'></label>'
-    +'<button class="orbbtn" type="button" data-pplmine="'+i+'" style="width:100%;margin-top:10px">Открыть карту целиком</button>';
+    +'<button class="orbbtn" type="button" data-pplmine="'+i+'" style="width:100%;margin-top:10px">Открыть карту целиком</button>'
+    +'<button class="orbbtn" type="button" data-pplmore="'+i+'" style="width:100%;margin-top:10px">Изменить или удалить</button>';
   ORB.sheet='person'; orbSheetOpen(h,p.n);
 }
 document.addEventListener('click',function(e){
@@ -8062,6 +8076,7 @@ document.addEventListener('click',function(e){
   if((x=t.closest('[data-pplopen]'))){ pplOpen(+x.getAttribute('data-pplopen')); return; }
   if((x=t.closest('[data-ppladd]'))){ var b=$('l-add'); if(b){ b.click(); setTimeout(function(){ var f=$('l-form')||b; try{ f.scrollIntoView({block:'start',behavior:orbReduced()?'auto':'smooth'}); }catch(_){} },60); } return; }
   if((x=t.closest('[data-pplpair]'))){ var i=+x.getAttribute('data-pplpair'); orbCloseSheet(); setTimeout(function(){ var row=[].slice.call(document.querySelectorAll('#s-links .lrow')).filter(function(r){ return r.querySelector('[data-lpair]')&&r.innerText.indexOf(loadPeople()[i].n)>=0; })[0]; if(row) row.querySelector('[data-lpair]').click(); },80); return; }
+  if((x=t.closest('[data-pplmore]'))){ var pm=loadPeople()[+x.getAttribute('data-pplmore')]; if(pm){ orbCloseSheet(); setTimeout(function(){ try{ chartActions('person',pm,null); }catch(_){} },320); } return; }
   if((x=t.closest('[data-pplmine]'))){ var p=loadPeople()[+x.getAttribute('data-pplmine')]; if(p){ orbCloseSheet(); setActive(p); ORB.level='root'; renderMe(); gotoScreen('me'); window.scrollTo(0,0); } return; }
 });
 document.addEventListener('change',function(e){ var x=e.target; if(!x||!x.getAttribute||x.getAttribute('data-pplnf')==null) return;
