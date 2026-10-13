@@ -1146,7 +1146,7 @@ export function searchCities(query, limit = 10) {
         if (s >= 0 && /[ыэъёҳәүөҗңһӳӱјњљћђџѓќѕæ]/.test(k)) s -= 0.25;       // among equal matches show a Russian-letter alias
         if (s > best) { best = s; shown = e.names[i]; }
       });
-      if (best >= 0) { const ua = e.names.find(n => /[іїєґ]/.test(n) && !/[ҳәүөҗңһӳӱјњљћђџѓќѕæ]/.test(n)); if (ua && CYR.test(normName(shown || ''))) shown = ua; hits.push([best, e.c[6] * (e.c[5] === PREFER_CC ? PREFER_WEIGHT : 1), e, shown]); }
+      if (best >= 0) { const uas = e.names.filter(n => /[іїєґ]/.test(n) && !/[ҳәүөҗңһӳӱјњљћђџѓќѕæ]/.test(n)); const lat = String(e.c[1] || '').toLowerCase().replace(/[^a-z]/g, '').slice(0, 4); const TR = {а:'a',б:'b',в:'v',г:'h',ґ:'g',д:'d',е:'e',є:'ye',ж:'zh',з:'z',и:'y',і:'i',ї:'yi',й:'y',к:'k',л:'l',м:'m',н:'n',о:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ф:'f',х:'kh',ц:'ts',ч:'ch',ш:'sh',щ:'shch',ю:'yu',я:'ya'}; const ua = uas.find(n => n.toLowerCase().replace(/[^а-яіїєґ]/g, '').split('').map(c => TR[c] || '').join('').slice(0, 4) === lat) || uas[0]; /* F-C 38 (13.10): среди украинских имён — то, что совпадает с текущим латинским (Kamyanske → Кам’янське, не Дніпродзержинськ) */ if (ua && CYR.test(normName(shown || ''))) shown = ua; hits.push([best, e.c[6] * (e.c[5] === PREFER_CC ? PREFER_WEIGHT : 1), e, shown]); }
     }
     return hits;
   };
