@@ -10,5 +10,5 @@
  "etaDays": 7,
  "storeBuild": false,
  "iap": false,
- "synth": false
+ "synth": true
 }

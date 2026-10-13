@@ -45,6 +45,7 @@
     'p4.about': 'О чём эта сфера', 'p4.systems': 'Смотрят системы: {list}', 'p4.systems_nt': 'Без времени рождения — без Дизайна человека и домов гороскопа.',
     'p4.pair_full_line2': 'В разборе пары: сравнение натальных карт, связи систем, насколько надёжен каждый вывод, горящие точки, советы для двоих и итог.',
     'p4.cards_more': 'Ещё карточки твоей карты · {n}',
+    'p4.send_btn': 'Хочешь полный текст этой сферы? Отправь карту Саше', 'p4.send_sub': 'дата, время и город уйдут только по твоему нажатию',
     'p4.pair_mutual': 'Друг для друга',
     'p4.teaser3': 'По твоей карте в тему «{title}» уже идут расчёты {n} разных систем: {list}. Разбор сведёт их в один текст: где они совпадают — опора, где расходятся — твой выбор, и к каждому выводу — что делать.',
     'p4.todo_label': 'Что с этим делать', 'p4.teaser_h': 'Что сойдётся в полном разборе', 'p4.teaser2': 'В разборе темы «{title}» эти системы сводятся в один текст: где они совпадают — опора, где расходятся — твой выбор, и к каждому выводу — что делать.', 'p4.teaser_tail': 'Разбор сведёт это в один текст: где источники согласны, где спорят и что с этим делать.',
@@ -284,13 +285,22 @@
     return out;
   }
   function andList(a) { return a.length > 1 ? a.slice(0, -1).join(', ') + ' и ' + a[a.length - 1] : a[0] || ''; }
-  function teaserText(cards, s, profile) {
-    var title = String(s.title || '').toLowerCase();
+  function teaserText(cards, s, profile, syn) {
+    var title = String(s.title || '').toLowerCase(); teaserText.multi = false;
+    if (syn) {   // 13.10 (слепая проверка 🔴3): подводка перечисляет все системы экрана — пункты «◈ Что видят системы» + карточки ниже
+      var g0 = [], add = function (n) { n = String(n || ''); n = n.charAt(0).toLowerCase() + n.slice(1); if (n && g0.indexOf(n) < 0) g0.push(n); };
+      if (syn.kind === 'synth') (syn.items || []).forEach(function (x) { add(x.sys); });
+      (cards || []).forEach(function (k) { add(plainSys(k.sys)); });   // 13.10 (повторная проверка 🔴1): карточка «что заряжает» видна клиенту как система — считается
+      if (g0.length > 1) { teaserText.multi = true; return tx('p4.teaser3', { n: ({ 2: 'двух', 3: 'трёх', 4: 'четырёх', 5: 'пяти' })[g0.length] || String(g0.length), k: g0.length, list: andList(g0), title: title }); }
+      return tx('p4.teaser1', { title: title });
+    }
     if (!(cards || []).length) {
       var nt = !!(profile && profile.nt), names = sysNames((s.systems || []).filter(function (x) { return !(nt && x === 'hd'); }));
       return names.length ? tx('p4.teaser0', { list: andList(names), title: title }) : '';
     }
-    var g = sysNames(cards.map(function (k) { return k.sys; }));
+    var g = sysNames(cards.filter(function (k) { return k.key !== 'path_el'; }).map(function (k) { return k.sys; }));   // 13.10: «что заряжает» — не блок банка, класса не даёт (= synth), иначе подводка спорит с «◈ Что видят системы»
+    if (!g.length) g = sysNames(cards.map(function (k) { return k.sys; }));
+    teaserText.multi = g.length > 1;
     return g.length > 1 ? tx('p4.teaser3', { n: ({ 2: 'двух', 3: 'трёх', 4: 'четырёх', 5: 'пяти' })[g.length] || String(g.length), k: g.length, list: andList(g), title: title })
       : tx('p4.teaser1', { title: title });
   }
@@ -306,9 +316,11 @@
   // owner decision 06.10 15:43: the block is NOT in 1.0 (package П2) — AGN.flags.synth via agSynth() (build AG_SYNTH=1), default off
   function synthOn() { try { return typeof W.agSynth === 'function' ? !!W.agSynth() : !!(A() && A().flags && A().flags.synth); } catch (e) { return false; } }
   function synthOf(s, profile) { if (!synthOn()) return null; try { return typeof W.AGP4_SYNTH === 'function' ? W.AGP4_SYNTH(profile, s.id) : null; } catch (e) { if (W.console) console.warn('AGP4_SYNTH', e); return null; } }
-  function synthHTML(y) {
+  function synthHTML(y, cards) {
     if (!y) return '';
-    if (y.kind === 'tint') return y.line ? '<p class="agp-note agp-tint">' + esc(y.line) + '</p>' : '';
+    if (y.kind === 'tint') {   // 13.10 (слепая проверка 🔴1): «только одна система» не пишется, если на экране карточка другой системы
+      var other = (cards || []).some(function (k) { return (y.systems || []).indexOf(k.sys) < 0; });
+      return y.line && !other ? '<p class="agp-note agp-tint">' + esc(y.line) + '</p>' : ''; }
     if (y.kind !== 'synth' || !(y.items && y.items.length) && !y.text) return '';
     return '<div class="agp-sec agp-syn-h">' + esc(uiP4('syn_h') || '◈ Что видят системы') + ' ' + badge(y.n) + '</div><div class="agp-syn">'
       + (y.items && y.items.length ? '<ul class="agp-syn-l">' + y.items.map(function (x) { return '<li' + (x.same ? ' class="agp-syn-same"' : '') + '><b>' + esc(x.sys) + '</b> — ' + esc(x.label) + '</li>'; }).join('') + '</ul>' : '')
@@ -316,8 +328,11 @@
       + (y.pull ? '<p class="agp-note agp-pull">' + esc(y.pull) + (y.pullLink ? ' <a href="#" data-agp-dispute="' + esc(y.pullAxis) + '">' + esc(uiP4('syn_pull_more') || 'подробнее в споре') + '</a>' : '') + '</p>' : '')
       + (y.text ? y.text.split(/\n\n/).map(function (x) { return '<p>' + esc(x) + '</p>'; }).join('') : '') + '</div>';
   }
+  var SYS_PLAIN0 = { natal: 'натальная карта', nakshatra: 'лунные звёзды', matrix: 'Матрица судьбы', numerology: 'нумерология', bazi: 'китайский календарь', tzolkin: 'календарь майя', gua: 'фэн-шуй', hd: 'Дизайн человека' };
+  function plainSys(id) { var m = uiP4('syn_sys') || SYS_PLAIN0; return m[id] || SYS_PLAIN0[id] || id; }
   function teaserHTML(cards, s, profile, syn) {
-    var p = teaserText(cards, s, profile), dl = disputeLine(s, profile, syn);
+    var p = teaserText(cards, s, profile, syn), multi = !!teaserText.multi;
+    var dl = multi ? disputeLine(s, profile, syn) : '';   // 13.10 (слепая проверка 🔴2): строка спора — только когда систем две и больше
     if (!p && !dl) return '';
     return '<div class="agp-sec">' + esc(tx('p4.teaser_h')) + '</div>' + (p ? '<p class="agp-teaser">' + esc(p) + '</p>' : '')
       + (dl ? '<p class="agp-note">' + esc(dl) + '</p>' : '');
@@ -334,20 +349,21 @@
     } else {
       var syn = synthOf(s, profile);
       if (s.about || s.looks) h += '<div class="agp-sec">' + esc(tx(s.about ? 'p4.about' : 'p4.looks')) + '</div><p>' + esc(s.about || s.looks) + '.</p>' + sysLine(s, profile, syn);   // #15: без терминов; системы — отдельной строкой, без часа — без ЧД
+      var cardsAll = cards;   // 13.10: подводка считает все карточки сферы, включая показанную в «◈ Что видят системы»
       if (!wait && syn && syn.drop) cards = cards.filter(function (k) { return k.key !== syn.key; });   // the convergence paragraph is that card's text — not twice
-      if (!wait) h += synthHTML(syn);
-      if (!wait && iapOn()) h += teaserHTML(cards, s, profile, syn);   // #15 r10: what the paid reading adds + the chart's dispute on this topic
-      else if (!wait) { var dl = disputeLine(s, profile, syn); if (dl) h += '<p class="agp-note">' + esc(dl) + '</p>'; }   // 1.0: the dispute as a fact, no promise
+      if (!wait) h += synthHTML(syn, cardsAll);
+      if (!wait) h += teaserHTML(cardsAll, s, profile, syn);   // 13.10: подводка к разбору всегда — разбор продаётся вне приложения (кнопка «Отправь карту Саше» ниже)
     }
     var card = function (k) { return hierCard(k.key, k.label, k.head, k.body); };
     if (cards.length) h += '<div class="agp-sec">' + esc(tx('p4.cards')) + '</div>';
-    if (cards.length) { h += cards.slice(0, 3).map(function (k, i) { var c = card(k); return i ? c : c.replace('<details class="agp-acc agp-card"', '<details open class="agp-acc agp-card"'); }).join('');   // первая — раскрыта   // #15: три ближайшие к сфере, остальные — свёрнуто
-      if (cards.length > 3) h += '<details class="agp-acc agp-more"><summary>' + esc(tx('p4.cards_more', { n: cards.length - 3 })) + '</summary><div class="bd" style="padding:0">' + cards.slice(3).map(card).join('') + '</div></details>'; }
+    if (cards.length) { h += cards.slice(0, 4).map(function (k) { return card(k).replace('<details class="agp-acc agp-card"', '<details open class="agp-acc agp-card"'); }).join('');   // 13.10 (Саша: «в сфере пусто»): до четырёх карточек раскрыты целиком, остальные — свёрнуты
+      if (cards.length > 4) h += '<details class="agp-acc agp-more"><summary>' + esc(tx('p4.cards_more', { n: cards.length - 4 })) + '</summary><div class="bd" style="padding:0">' + cards.slice(4).map(card).join('') + '</div></details>'; }
     else if (wait || (synthOn() && !iapOn()) || !teaserText(cards, s, profile)) h += '<div class="agp-sec">' + esc(tx('p4.cards')) + '</div><p class="agp-note">' + esc(tx('p4.cards_none')) + '</p>';   // пустую сферу объясняет p4.teaser0, если он показан
     if (wait) return h;
     // 1.0: the next version is promised once per sphere (review 06.10d) — the teaser / empty-sphere note, else p4.full_line at the bottom
     var soonSaid = !iapOn() && (!cards.length || (!synthOn() && !!teaserText(cards, s, profile)));
     if (!soonSaid) h += '<p class="agp-note" style="margin-top:14px">' + esc(tx('p4.full_line')) + '</p>';
+    try { if (W.AG_sendOK && W.AG_sendOK()) h += '<button class="orbcopy" data-orbsend="1" type="button">' + esc(tx('p4.send_btn')) + '<small>' + esc(tx('p4.send_sub')) + '</small></button>'; } catch (e) {}   // 13.10: подводка к платному разбору — в каждой сфере
     if (!iapOn() && cat && cat.sample_id && s.id !== cat.sample_id) h += sampleCard();   // audit 08.10: instead of «скоро» — open the full text of one sphere (founder chart)
     if (!salesOff) h += buyHTML();
     return h;
