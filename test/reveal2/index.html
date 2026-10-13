@@ -1,8 +1,9 @@
 <!doctype html><html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Відкриття карти — сцена v2</title>
-<!-- «Открытие карты» v2 (чат #0c, 13.10.2026): одна сцена на WebGL (один прямоугольник, шейдер), типографика — DOM.
-     Весь кадр — чистая функция времени render(t): так же пишется видео (Playwright → ffmpeg) и держится синхрон со звуком.
-     ?c=chen_04 — другой персонаж в той же сцене; ?rec=1 — режим записи. -->
+<title>Відкриття карти — сцена v3</title>
+<!-- «Открытие карты» v3 (чат «Открытие карты 2», 13.10.2026): одна сцена на WebGL (один прямоугольник, шейдер), типографика — DOM.
+     Слои Gemini (layers/): фон, круг неба, фонарь выкл/вкл, туман 3 канала, вспышка+пыль; круг собирается кодом по данным ядра
+     (планеты на градусах), 8 медальонов систем — DOM-спрайты. Весь кадр — чистая функция времени render(t): так же пишется
+     видео (rec.py: Playwright → ffmpeg) и держится синхрон со звуком (sound.py). ?c=chen_04 — другой персонаж; ?rec=1 — запись; ?fps — счётчик. -->
 <style>
 @font-face{font-family:'Ysabeau';font-weight:300;src:url(ysabeau-cyrillic-300-normal.woff2)}
 @font-face{font-family:'YO';font-weight:500;src:url(ysabeau-office-cyrillic-500-normal.woff2)}
@@ -13,8 +14,9 @@ html,body{height:100%;background:#040209;overflow:hidden}
 #st>*{position:absolute}
 #cw{inset:0;transform-origin:50% 50%;will-change:transform}
 #cw canvas{width:100%;height:100%;display:block}
+#sys{inset:0;pointer-events:none}
+#sys img{position:absolute;left:0;top:0;width:68px;height:68px;margin:-34px 0 0 -34px;will-change:transform,opacity;opacity:0;filter:drop-shadow(0 0 8px rgba(255,205,130,.7)) brightness(1.15)}
 #edge{inset:-1px;background:linear-gradient(180deg,#040209 0,transparent 12%,transparent 88%,#040209 100%);pointer-events:none}
-#frame{border:1.5px solid #D9B967;border-radius:18px;box-shadow:0 0 60px 8px rgba(217,185,103,.28),inset 0 0 0 5px rgba(4,2,9,.85),inset 0 0 0 6px rgba(217,185,103,.55);pointer-events:none}
 .cap{left:0;right:0;text-align:center;pointer-events:none}
 .ch{display:inline-block;white-space:pre;will-change:transform,opacity,filter}
 #date{top:366px;font:300 30px 'Unb';letter-spacing:.06em;color:#F1DFA6}
@@ -32,54 +34,65 @@ html,body{height:100%;background:#040209;overflow:hidden}
 #skip{right:16px;top:14px;font-size:12.5px;color:#8f84ad;letter-spacing:.05em;padding:8px;background:none;border:0;font-family:inherit}
 #play{inset:0;display:flex;flex-direction:column;gap:10px;align-items:center;justify-content:center;background:#040209;font:300 22px 'Ysabeau';color:#F1DFA6;z-index:9;border:0;width:100%}
 #play small{font:500 12px 'YO';letter-spacing:.14em;color:#8f84ad}
+#fps{left:10px;top:10px;font:11px monospace;color:#6d6488;pointer-events:none}
 </style></head><body>
 <div id="st">
- <div id="cw"><canvas id="gl"></canvas></div><div id="edge"></div>
+ <div id="cw"><canvas id="gl"></canvas></div><div id="sys"></div><div id="edge"></div>
  <div class="cap" id="date"></div>
  <div class="cap" id="k1"></div><div class="cap" id="d1"></div><div class="cap" id="c1"></div><div class="cap" id="c2"></div>
  <div id="seal"></div><div class="cap" id="kick"></div><div class="cap" id="nm"></div><div class="cap" id="sub"></div><div class="cap" id="act"></div>
  <button id="btn" type="button">Відкрити мою карту</button><button id="skip" type="button">пропустити</button>
+ <div id="fps"></div>
  <button id="play" type="button">Відкрити карту<small>ЗІ ЗВУКОМ</small></button>
 </div>
 <script id="fs" type="x-shader/x-fragment">
 precision highp float;
 varying vec2 vUv;
-uniform sampler2D uPlate, uChar;
-uniform float uT, uAsp, uLight, uSil, uRev, uFlash, uFog, uLan, uZoom, uDust, uAmb, uS, uSc, uCardA, uWind, uBreath;
-uniform vec2 uPar, uC, uRes; uniform vec4 uRect;
+uniform sampler2D uPlate, uChar, uSky, uLant, uFog, uFx;
+uniform float uT, uAsp, uLight, uSil, uRev, uFlash, uFogA, uLan, uZoom, uDust, uAmb, uS, uSc, uCardA, uWind, uBreath, uSkyA, uLantA, uLantOn, uSpark;
+uniform vec2 uPar, uC, uRes, uL, uM; uniform vec4 uRect, uSkyRect, uLantRect;
 float rbox(vec2 p, vec2 b, float r){ vec2 q=abs(p)-b+r; return length(max(q,0.))+min(max(q.x,q.y),0.)-r; }
-const vec2 L = vec2(.733,.325);
 float h(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
-float ns(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f); return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y); }
-float fbm(vec2 p){ float a=.5, s=0.; for(int i=0;i<4;i++){ s+=a*ns(p); p=p*2.03+vec2(7.1,3.3); a*=.5; } return s; }
 void main(){
+  vec2 L = uL;
   vec2 drift = vec2(sin(uT*.21)*.004, cos(uT*.17)*.003);
-  vec2 uvP = vec2(.5) + (vUv-uC)/uS;
+  vec2 uvP = uM + (vUv-uC)/uS;   // uM: экран (=uC, фон во весь экран) → карта (=.5, в рамке весь фон)
   vec2 uv = L + (uvP-L)/uZoom + drift;
   vec2 q = (uv-L)*vec2(uAsp,1.); float d = length(q);
   // карта: снаружи — ночь и свечение, по краю — золотая рамка
   float sdf = rbox((vUv-uC)*uRes, vec2(uS*uRes.x*.5, uS*uRes.y*.5), 18.);
   float outside = uCardA*step(0.,sdf);
-  float n = fbm(uv*vec2(3.,5.)+vec2(uT*.02,0.));
   float fl = .9+.1*sin(uT*9.)*sin(uT*5.3+1.)+.05*sin(uT*23.);
-  // фон: свет фонаря «дотягивается» до неба и скалы
+  // неровная кромка света — из текстуры тумана (дёшево, без шума в шейдере)
+  float n = texture2D(uFog, uv*vec2(1.3,2.2)+vec2(uT*.01,0.)).r;
+  // фон: свет огонька «дотягивается» до неба и скалы
   vec3 plate = texture2D(uPlate, uv + uPar*.004).rgb;
   float light = smoothstep(uLight, uLight*.3, d + (n-.5)*.16);
-  vec3 col = plate*(light*(.82+.18*fl) + uAmb);
+  float inPl = step(0.,uv.x)*step(uv.x,1.)*step(0.,uv.y)*step(uv.y,1.);   // за краем фона — ночь, не растяжка
+  vec3 col = plate*(light*(.82+.18*fl) + uAmb)*inPl;
+  // круг неба (слой Gemini + планеты на градусах, canvas → текстура): проявляется светом
+  { vec2 suv=(uv-uSkyRect.xy)/uSkyRect.zw; if(uSkyA>0. && suv.x>0. && suv.x<1. && suv.y>0. && suv.y<1.){ vec4 sk=texture2D(uSky,suv+uPar*.003);
+      col = mix(col, sk.rgb*(.75+.35*light+.3*uLan*exp(-d*2.5)), sk.a*uSkyA); } }
+  // огонёк и свечение фонаря
   col += vec3(1.,.42,.18)*uLan*fl*(.34*exp(-d*13.)+.10*exp(-d*3.6));
+  col += vec3(1.,.78,.5)*uSpark*(fl*.9*exp(-d*d*9000.)+.5*exp(-d*60.)+.12*exp(-d*9.));
+  // фонарь: отдельный слой (выкл → вкл), висит у огонька
+  { vec2 luv=(uv-uLantRect.xy)/uLantRect.zw; if(uLantA>0. && luv.x>0. && luv.x<1. && luv.y>0. && luv.y<1.){
+      luv.x += .004*sin(uT*1.3)*(luv.y); vec4 lo=texture2D(uLant, vec2(luv.x, luv.y*.5)); vec4 ln=texture2D(uLant, vec2(luv.x, .5+luv.y*.5));
+      vec4 lt=mix(lo,ln,uLantOn); vec3 lc=lt.rgb*(.35+.65*light+uAmb+.5*uLantOn); col = mix(col, lc, lt.a*uLantA); } }
   col = mix(col, vec3(.016,.009,.035)+vec3(.85,.72,.4)*.22*exp(-max(sdf,0.)/38.), outside);
   float ring = uCardA*(smoothstep(1.6,.4,abs(sdf))*.9 + smoothstep(1.2,.3,abs(sdf+6.))*.45);
   col = mix(col, vec3(.85,.72,.40), ring);
   { vec2 sp=(uv-vec2(uRect.x+uRect.z*.5, uRect.y+uRect.w*.985))/vec2(uRect.z*.62, uRect.w*.035); col*=1.-.6*uSil*exp(-dot(sp,sp)*1.6)*(1.-outside); }
   // персонаж: настоящая картинка карты; силуэт, контровой контур и проявление считает шейдер
   vec2 feet = vec2(uRect.x+uRect.z*.5, uRect.y+uRect.w);
-  vec2 feetScr = uC + (feet-.5)*uS, dC = feetScr - (uC + (feet-.5)*uSc);
-  vec2 uvC = L + ((vec2(.5) + (vUv-dC-uC)/uSc) - L)/uZoom + drift;
+  vec2 feetScr = uC + (feet-uM)*uS, dC = feetScr - (uC + (feet-uM)*uSc);
+  vec2 uvC = L + ((uM + (vUv-dC-uC)/uSc) - L)/uZoom + drift;
   vec2 cuv = (uvC - uRect.xy)/uRect.zw + uPar*.010;
   cuv.y = 1. - (1.-cuv.y)*(1.+uBreath*.012*sin(uT*1.5));
   float wmask = smoothstep(.38,.92,cuv.y)*smoothstep(1.,.93,cuv.y);
   cuv.x += uWind*wmask*(.010*sin(cuv.y*9.-uT*2.1) + .006*sin(cuv.y*17.+uT*3.3) + .004*sin(uT*.7));
-  if(cuv.x>0. && cuv.x<1. && cuv.y>0. && cuv.y<1.){
+  if(uSil>0. && cuv.x>0. && cuv.x<1. && cuv.y>0. && cuv.y<1.){
     vec4 c = texture2D(uChar, cuv);
     vec2 dir = normalize((L-uv)*vec2(uAsp,1.))/uRect.zw*vec2(1./uAsp,1.);
     float rim = clamp(c.a - texture2D(uChar, cuv+dir*.011).a, 0., 1.);
@@ -91,24 +104,25 @@ void main(){
     cc += (rim*1.1+rim2*.45)*vec3(1.,.66,.34)*max(uLan,.7)*fl*mix(1., .2, rev)*exp(-d*1.1);
     float edge = smoothstep(uRev*.5, uRev*.78, d+(n-.5)*.26)*smoothstep(uRev*1.05, uRev*.8, d+(n-.5)*.26);
     cc += vec3(1.,.8,.45)*edge*.5*step(.02,uRev)*step(uRev,2.4);
-    float feet = smoothstep(1., .9, cuv.y);
-    col = mix(col, cc, c.a*uSil*feet);
+    float feetF = smoothstep(1., .9, cuv.y);
+    col = mix(col, cc, c.a*uSil*feetF);
   }
-  // туман перед ногами: три слоя, подсвечен фонарём
-  float band = smoothstep(.52,.98,uv.y);
-  float f1 = fbm(vec2(uv.x*2.1 - uT*.018, uv.y*3.4+uT*.004));
-  float f2 = fbm(vec2(uv.x*3.7 + uT*.027, uv.y*5.2)+4.);
-  float fog = clamp((f1*.75+f2*.45-.34)*1.7,0.,1.)*band;
+  // туман перед ногами: три слоя Gemini (каналы R/G/B), подсвечен огоньком
+  float band = smoothstep(.50,.98,uv.y);
+  float fy = (uv.y-.45)/.6;
+  float fa = texture2D(uFog, vec2(uv.x*.75 - uT*.016, fy*.8+.1)).r;
+  float fb = texture2D(uFog, vec2(uv.x*.6 + uT*.011 + .3, fy*.9)).g;
+  float fc = texture2D(uFog, vec2(uv.x*.5 - uT*.008 + .6, fy*.7+.25)).b;
+  float fog = clamp(fa*.45 + fb*.55 + fc*.75*smoothstep(.6,1.,uv.y), 0., 1.)*band;
   vec3 fogc = vec3(.40,.34,.50)*(.10+.75*light+uAmb) + vec3(1.,.5,.25)*.22*exp(-d*3.2)*uLan;
-  col = mix(col, fogc, fog*uFog*.78*(1.-outside));
-  // золотая пыль
-  if(uDust>0.){ float s=0.; for(int i=0;i<26;i++){ float fi=float(i); vec2 p=vec2(h(vec2(fi,1.3)), h(vec2(fi,7.7)));
-      float life=fract(h(vec2(fi,3.1))+uT*(.05+.05*h(vec2(fi,9.)))); p=L+(p-.5)*vec2(.9,.8)+vec2(sin(uT*.6+fi)*.012, .12-life*.3);
-      float dd=length((uv-p)*vec2(uAsp,1.)); s+=exp(-dd*dd*90000.)*sin(life*3.1416)*(.5+.5*sin(uT*4.+fi*2.)); }
-    col += vec3(1.,.8,.45)*s*uDust*(1.-outside); }
-  // вспышка
-  col += vec3(1.,.80,.52)*uFlash*exp(-d*(5.-3.4*uFlash))*1.25;
-  col = mix(col, vec3(1.,.93,.80), uFlash*uFlash*.20*exp(-d*.9));
+  col = mix(col, fogc, fog*uFogA*.8*(1.-outside));
+  // золотая пыль — слой Gemini в два прохода
+  if(uDust>0.){ float du = texture2D(uFx, uv*vec2(1.2,2.1)+vec2(uT*.012,-uT*.02)).g + texture2D(uFx, uv*vec2(2.0,3.5)+vec2(-uT*.008,-uT*.035)).g*.7;
+    col += vec3(1.,.8,.45)*du*uDust*(.55+.45*sin(uT*4.+uv.x*30.))*(1.-outside)*exp(-d*1.2); }
+  // вспышка — лучи Gemini от огонька
+  if(uFlash>0.){ vec2 buv = q/(.55+.9*uFlash) + .5; float br = texture2D(uFx, buv).r*step(0.,buv.x)*step(buv.x,1.)*step(0.,buv.y)*step(buv.y,1.);
+    col += vec3(1.,.80,.52)*uFlash*(br*1.3 + exp(-d*(5.-3.4*uFlash))*1.1);
+    col = mix(col, vec3(1.,.93,.80), uFlash*uFlash*.20*exp(-d*.9)); }
   col *= 1.-.30*smoothstep(.45,1.1,length((vUv-.5)*vec2(.9,1.1)));
   col += (h(vUv*800.+uT)-.5)*.018;
   gl_FragColor = vec4(col,1.);
@@ -116,21 +130,54 @@ void main(){
 </script>
 <script>
 const Q=new URLSearchParams(location.search), REC=Q.has('rec'), CK=Q.get('c')==='chen_04'?'chen_04':'yin_13';
-const CARD={ yin_13:{name:'Тигр-Мандрівник', sub:'Земляний Тигр · Небесний Мандрівник', act:'Прокладаєш шлях там, де дороги ще немає, і розповідаєш про нього.', seal:'seal_13.webp', asp:566/891, h:.50, cx:.42, by:.90},
-             chen_04:{name:'Дракон-Розквіт', sub:'Дракон · Жовте Зерно', act:'Садиш ідею й терпляче доводиш її до плоду.', seal:'seal_04.webp', asp:600/1025, h:.50, cx:.42, by:.90} }[CK];
-const $=id=>document.getElementById(id), W=432, H=768, DUR=13.2;
+const CARD={ yin_13:{name:'Тигр-Мандрівник', sub:'Земляний Тигр · Небесний Мандрівник', act:'Прокладаєш шлях там, де дороги ще немає, і розповідаєш про нього.', seal:'seal_13.webp', asp:566/891, h:.46, cx:.70, by:.77},
+             chen_04:{name:'Дракон-Розквіт', sub:'Дракон · Жовте Зерно', act:'Садиш ідею й терпляче доводиш її до плоду.', seal:'seal_04.webp', asp:600/1025, h:.46, cx:.70, by:.77} }[CK];
+// небо рождения — данные ядра (chart.py, карта основателя 05.06.1997 05:10 Харьков); в приложении — rvData.planets / rvData.asc
+const SKY={asc:83.718, planets:[['sun',74.47,1],['moon',71.94,.74],['mercury',53.54,.86],['venus',91.11,.86],['mars',174.34,1],['jupiter',321.9,1],['saturn',17.69,1],['uranus',308.46,.78],['neptune',299.66,.9],['pluto',243.94,.9]]};
+const PL=['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto'];
+const SYS=['natal','bazi','matrix','hd','num','fengshui','jyotish','tzolkin'];
+const $=id=>document.getElementById(id), W=432, H=768, DUR=13.4;
 const cl=(x,a=0,b=1)=>Math.max(a,Math.min(b,x)), seg=(t,a,b)=>cl((t-a)/(b-a));
 const eo=x=>1-Math.pow(1-x,3), eo5=x=>1-Math.pow(1-x,5), ei=x=>x*x*x, eio=x=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;
 const back=x=>{ const c=1.70158; return 1+(c+1)*Math.pow(x-1,3)+c*Math.pow(x-1,2); };
+// ---------- геометрия сцены в uv фона (768×1376): огонёк, круг неба, фонарь, персонаж
+const PA=768/1376;                         // uv.x → uv.y для квадрата
+const L=[.35,.45];                         // огонёк / огонь фонаря (слева от персонажа — контровой свет)
+const WC=[.5,.26], WR=.385;                // круг неба: центр, половина стороны картинки (uv.x)
+const SKYRECT=[WC[0]-WR, WC[1]-WR*PA, WR*2, WR*2*PA];
+const LW=.27, LANTRECT=[L[0]-.49*LW, L[1]-.60*LW*PA, LW, LW*PA];   // огонь фонаря в картинке — (0.49, 0.60)
+const cw=CARD.h*CARD.asp*(H/W), RECT=[CARD.cx-cw/2, CARD.by-CARD.h, cw, CARD.h];
 // ---------- типографика: каждая буква — свой слой
 function split(id,txt){ const el=$(id); el.textContent=''; return [...txt].map(c=>{ const s=document.createElement('span'); s.className='ch'; s.textContent=c; el.appendChild(s); return s; }); }
 const T={ date:split('date','05.06.1997'), k1:split('k1','НЕБО В МИТЬ ТВОГО НАРОДЖЕННЯ'), d1:split('d1','05.06.1997 · 05:10'), c1:split('c1','ХАРКІВ'),
           c2:split('c2','Вісім систем — одна карта'), kick:split('kick','ІМ’Я ТВОЄЇ КАРТИ'), nm:split('nm',CARD.name), sub:split('sub',CARD.sub) };
 $('act').textContent=CARD.act; $('seal').style.backgroundImage=`url(${CARD.seal})`;
-// буквы входят снизу из размытия, уходят вверх в размытие; stagger — от центра или слева
 function letters(arr,t,a,b,o={}){ const st=o.st??.028, din=o.din??.5, dout=o.dout??.35, n=arr.length, mid=(n-1)/2;
   arr.forEach((s,i)=>{ const k=o.center?Math.abs(i-mid):i, pin=eo5(seg(t,a+k*st,a+k*st+din)), pout=b==null?0:ei(seg(t,b+k*st*.5,b+k*st*.5+dout));
     s.style.opacity=pin*(1-pout); s.style.transform=`translateY(${(1-pin)*(o.dy??14)-pout*10}px) scale(${.92+.08*pin})`; s.style.filter=pin<1||pout>0?`blur(${(1-pin)*6+pout*5}px)`:'none'; }); }
+// ---------- медальоны систем: DOM-спрайты, позиция — через ту же геометрию, что и шейдер
+const SYSEL=SYS.map(n=>{ const im=new Image(); im.src='layers/sys_'+n+'.webp'; $('sys').appendChild(im); return im; });
+let zoomNow=1, sNow=1, cNow=[.5,.5-112/H], mNow=cNow;
+function uvToScr(u,t){ const dr=[Math.sin(t*.21)*.004, Math.cos(t*.17)*.003];
+  return [ (cNow[0] + ((u[0]-dr[0]-L[0])*zoomNow + L[0] - mNow[0])*sNow)*W, (cNow[1] + ((u[1]-dr[1]-L[1])*zoomNow + L[1] - mNow[1])*sNow)*H ]; }
+// ---------- круг неба: слой Gemini + планеты на градусах. АСЦ слева, знаки против часовой; prog — проявление по кругу, планеты летят от огонька на свои градусы
+const SKC=document.createElement('canvas'); SKC.width=SKC.height=1024; const skx=SKC.getContext('2d');
+const IMG={}; function img(k,src){ return new Promise(r=>{ const i=new Image(); i.onload=()=>{ IMG[k]=i; r(); }; i.src=src; }); }
+const SKP=SKY.planets.map(p=>{ const a=Math.PI-(p[1]-SKY.asc)*Math.PI/180; return {k:p[0],w:p[2],a,ord:((Math.PI/2-a)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)}; }).sort((x,y)=>x.ord-y.ord);
+function drawSky(prog,fly,glow){ const c=skx, cx=512, cy=512, R=512*.78, A0=-Math.PI/2; c.clearRect(0,0,1024,1024);
+  // круг проявляется по дуге от верхней точки в обе стороны
+  c.save(); c.beginPath(); c.moveTo(cx,cy); c.arc(cx,cy,560,A0-Math.PI*prog,A0+Math.PI*prog); c.closePath(); c.clip();
+  c.globalAlpha=.95; c.drawImage(IMG.wheel,0,0,1024,1024); c.restore(); c.globalAlpha=1;
+  // огонёк в координатах круга — откуда летят планеты
+  const sx=(L[0]-SKYRECT[0])/SKYRECT[2]*1024, sy=(L[1]-SKYRECT[1])/SKYRECT[3]*1024;
+  SKP.forEach((p,i)=>{ const k=eo(cl(fly-i*.55)); if(k<=0) return; const tx=cx+R*Math.cos(p.a), ty=cy+R*Math.sin(p.a);
+    const x=sx+(tx-sx)*k, y=sy+(ty-sy)*k - Math.sin(k*Math.PI)*60, s=38*p.w*(.6+.4*k), pop=1+.5*Math.sin(cl((fly-i*.55-1)*3)*Math.PI);
+    const g=c.createRadialGradient(x,y,0,x,y,s*1.6*pop); g.addColorStop(0,'rgba(255,224,160,'+(.5*glow*k)+')'); g.addColorStop(1,'rgba(255,180,90,0)'); c.fillStyle=g; c.beginPath(); c.arc(x,y,s*1.6*pop,0,6.283); c.fill();
+    c.globalAlpha=cl(k*2); c.drawImage(IMG.planets, PL.indexOf(p.k)*96,0,96,96, x-s/2*pop, y-s/2*pop, s*pop, s*pop); c.globalAlpha=1; });
+}
+let skyKey='';
+function skyTex(prog,fly,glow){ const key=prog.toFixed(3)+'|'+fly.toFixed(2)+'|'+glow.toFixed(2); if(key===skyKey) return; skyKey=key; drawSky(prog,fly,glow);
+  gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D,skyT); gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,SKC); }
 // ---------- WebGL
 const cv=$('gl'), gl=cv.getContext('webgl',{antialias:false,alpha:false,preserveDrawingBuffer:REC});
 const DPR=Math.min(2,devicePixelRatio||1); cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR);
@@ -139,35 +186,49 @@ const pr=gl.createProgram(); gl.attachShader(pr,sh(gl.VERTEX_SHADER,'attribute v
 gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,$('fs').textContent)); gl.linkProgram(pr); gl.useProgram(pr);
 gl.bindBuffer(gl.ARRAY_BUFFER,gl.createBuffer()); gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
 const lp=gl.getAttribLocation(pr,'p'); gl.enableVertexAttribArray(lp); gl.vertexAttribPointer(lp,2,gl.FLOAT,false,0,0);
-const U={}; ['uPlate','uChar','uT','uAsp','uLight','uSil','uRev','uFlash','uFog','uLan','uZoom','uDust','uAmb','uPar','uRect','uS','uSc','uCardA','uWind','uBreath','uC','uRes'].forEach(n=>U[n]=gl.getUniformLocation(pr,n));
-function tex(unit,src){ return new Promise(res=>{ const im=new Image(); im.onload=()=>{ const t=gl.createTexture(); gl.activeTexture(gl.TEXTURE0+unit); gl.bindTexture(gl.TEXTURE_2D,t);
-  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,im); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE); res(); }; im.src=src; }); }
-const cw=CARD.h*CARD.asp*(H/W), RECT=[CARD.cx-cw/2, CARD.by-CARD.h, cw, CARD.h];
+const U={}; ['uPlate','uChar','uSky','uLant','uFog','uFx','uT','uAsp','uLight','uSil','uRev','uFlash','uFogA','uLan','uZoom','uDust','uAmb','uS','uSc','uCardA','uWind','uBreath','uSkyA','uLantA','uLantOn','uSpark','uPar','uC','uRes','uL','uM','uRect','uSkyRect','uLantRect'].forEach(n=>U[n]=gl.getUniformLocation(pr,n));
+function texParams(wrap){ [gl.TEXTURE_MIN_FILTER,gl.TEXTURE_MAG_FILTER].forEach(k=>gl.texParameteri(gl.TEXTURE_2D,k,gl.LINEAR)); [gl.TEXTURE_WRAP_S,gl.TEXTURE_WRAP_T].forEach(k=>gl.texParameteri(gl.TEXTURE_2D,k,wrap?gl.REPEAT:gl.CLAMP_TO_EDGE)); }
+function tex(unit,src,wrap){ return new Promise(res=>{ const im=new Image(); im.onload=()=>{ const t=gl.createTexture(); gl.activeTexture(gl.TEXTURE0+unit); gl.bindTexture(gl.TEXTURE_2D,t);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,im); texParams(wrap); res(); }; im.src=src; }); }
+const skyT=gl.createTexture(); gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D,skyT); texParams(false);
 let par=[0,0], parT=[0,0];
 // ---------- кадр как функция времени
 function render(t){
   // 1. дата стягивается в искру (0–0.9)
   const dz=seg(t,.15,.85); T.date.forEach((s,i)=>{ const k=i-(T.date.length-1)/2; s.style.opacity=1-ei(dz); s.style.transform=`translateX(${-k*19*eio(dz)}px) scale(${1-.5*dz})`; s.style.filter=`blur(${dz*5}px)`; });
-  // свет: искра → фонарь → небо
-  const lan=eo(seg(t,.5,1.6))*(1-.75*seg(t,5.3,6.2))+ .75*eo(seg(t,6.4,6.5))+.25*seg(t,6.5,7.5);
-  const light=.02+.16*eo(seg(t,.9,2.2))+1.5*eio(seg(t,2.2,4.6))-.95*eio(seg(t,5.2,6.3))+1.4*eo(seg(t,6.4,7.4));
+  // свет: искра (0.8) → небо (2.2–4.6) → медальоны кормят огонёк (4.7–5.4) → фонарь (5.4–6.3) → вспышка
+  const spark=eo(seg(t,.8,1.3))*(1+.6*seg(t,4.7,5.4))*(1-seg(t,5.6,6.2));
+  const lan=.15*seg(t,1.2,2)+.35*eio(seg(t,4.7,5.4))-.35*seg(t,5.3,6.1)+ .85*eo(seg(t,6.3,6.5))+.15*seg(t,6.5,7.5);
+  const light=.02+.14*eo(seg(t,.9,2.2))+1.4*eio(seg(t,2.2,4.6))-.9*eio(seg(t,5.2,6.3))+1.4*eo(seg(t,6.4,7.4));
   const sil=eio(seg(t,5.1,6.0)), rev=t<6.45?0:.05+2.6*eo(seg(t,6.5,8.6));
   const flash=t<6.4?0:t<6.52?seg(t,6.4,6.52):1-eo(seg(t,6.52,7.5));
   const zoom=1+.035*seg(t,1,5.2)+.07*eio(seg(t,5.2,6.4))-.04*eo(seg(t,6.4,7.3))+.025*seg(t,7.3,9.4);
   par=[par[0]+(parT[0]-par[0])*.08, par[1]+(parT[1]-par[1])*.08];
+  const k=eio(seg(t,9.4,10.5)), S=1-.48*k, SC=1+.04*k;   // сцена уходит в карту, персонаж остаётся в рост — голова выходит за рамку
+  zoomNow=zoom; sNow=S; mNow=[cNow[0]+(.5-cNow[0])*k, cNow[1]+(.5-cNow[1])*k];
+  // 3. круг неба проявляется (2.2–3.9), планеты летят от огонька на свои градусы (2.9–4.9)
+  skyTex(eio(seg(t,2.2,3.9)), (t-2.9)/.42, .6+.4*Math.sin(t*2.));
   gl.viewport(0,0,cv.width,cv.height);
-  gl.uniform1i(U.uPlate,0); gl.uniform1i(U.uChar,1); gl.uniform1f(U.uT,t); gl.uniform1f(U.uAsp,W/H);
+  gl.uniform1i(U.uPlate,0); gl.uniform1i(U.uChar,1); gl.uniform1i(U.uSky,2); gl.uniform1i(U.uLant,3); gl.uniform1i(U.uFog,4); gl.uniform1i(U.uFx,5);
+  gl.uniform1f(U.uT,t); gl.uniform1f(U.uAsp,W/H); gl.uniform2f(U.uL,...L);
   gl.uniform1f(U.uLight,light); gl.uniform1f(U.uSil,sil); gl.uniform1f(U.uRev,rev); gl.uniform1f(U.uFlash,flash);
-  gl.uniform1f(U.uFog,eo(seg(t,.9,2.4))); gl.uniform1f(U.uLan,lan); gl.uniform1f(U.uZoom,zoom); gl.uniform1f(U.uDust,seg(t,6.6,7.4)*(1-.6*seg(t,10,12)));
+  gl.uniform1f(U.uFogA,eo(seg(t,.9,2.4))); gl.uniform1f(U.uLan,lan); gl.uniform1f(U.uSpark,spark); gl.uniform1f(U.uZoom,zoom); gl.uniform1f(U.uDust,seg(t,6.6,7.4)*(1-.6*seg(t,10,12)));
   gl.uniform1f(U.uAmb,.05*seg(t,7,9)); gl.uniform2f(U.uPar,par[0],par[1]); gl.uniform4f(U.uRect,...RECT);
-  const k=eio(seg(t,9.4,10.5)), S=1-.42*k, SC=1-.42*k*.62; gl.uniform1f(U.uS,S); gl.uniform1f(U.uSc,SC); gl.uniform1f(U.uCardA,eo(seg(t,10.0,10.6)));
-  gl.uniform2f(U.uC,.5,.5-112/H); gl.uniform2f(U.uRes,W,H); gl.uniform1f(U.uWind,eo(seg(t,6.9,8.4))); gl.uniform1f(U.uBreath,sil);
+  gl.uniform4f(U.uSkyRect,...SKYRECT); gl.uniform1f(U.uSkyA,seg(t,2.2,2.5));
+  gl.uniform4f(U.uLantRect,...LANTRECT); gl.uniform1f(U.uLantA,eo(seg(t,5.4,6.1))); gl.uniform1f(U.uLantOn,eo(seg(t,6.25,6.45)));
+  gl.uniform1f(U.uS,S); gl.uniform1f(U.uSc,SC); gl.uniform1f(U.uCardA,eo(seg(t,9.7,10.5)));
+  gl.uniform2f(U.uC,...cNow); gl.uniform2f(U.uM,...mNow); gl.uniform2f(U.uRes,W,H); gl.uniform1f(U.uWind,eo(seg(t,6.9,8.4))); gl.uniform1f(U.uBreath,sil);
   gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+  // 4. восемь медальонов систем встают кольцом вокруг неба (4.0–4.8) и уходят в огонёк (4.7–5.5), ритм ускоряется
+  SYSEL.forEach((im,i)=>{ const a=-Math.PI/2+i*Math.PI/4, ring=[WC[0]+.47*Math.cos(a), WC[1]+.47*PA*Math.sin(a)];
+    const pin=eo(seg(t,4.0+i*.09,4.45+i*.09)), pgo=ei(seg(t,4.75+i*.06,5.35+i*.03));
+    const u=[ring[0]+(L[0]-ring[0])*pgo, ring[1]+(L[1]-ring[1])*pgo], p=uvToScr(u,t), sc=(.4+.6*pin)*(1-pgo*.9);
+    im.style.opacity=pin*(1-ei(cl(pgo*1.15))); im.style.transform=`translate(${p[0].toFixed(1)}px,${p[1].toFixed(1)}px) scale(${sc.toFixed(3)}) rotate(${((1-pin)*-40+pgo*90).toFixed(1)}deg)`; });
   // 3–4. подписи
   letters(T.k1,t,2.7,4.05,{st:.016}); letters(T.d1,t,2.95,4.12,{st:.03,center:true}); letters(T.c1,t,3.25,4.2,{st:.05,center:true});
   letters(T.c2,t,4.35,5.15,{st:.022,din:.45});
   // 9. сцена становится картой
-  const fw=W*.58, fh=H*.58, fx=(W-fw)/2, fy=(H-fh)/2-112;
+  const fw=W*.52, fh=H*.52, fx=(W-fw)/2, fy=(H-fh)/2-112;
   $('edge').style.opacity=1-k;
   // 10. печать, имя, подпись, кнопка
   const sp=seg(t,10.6,10.95); Object.assign($('seal').style,{left:(fx+fw-52)+'px',top:(fy+fh-48)+'px',opacity:cl(sp*5),transform:`scale(${2.4-1.4*back(sp)}) rotate(${(1-eo(sp))*-18}deg)`});
@@ -181,10 +242,13 @@ function render(t){
 window.render=render;
 // ---------- запуск
 function fit(){ const s=Math.min(innerWidth/W,innerHeight/H); $('st').style.transform=`scale(${s})`; }
-let t0=0, run=false, au=null;
-function loop(){ if(!run) return; const t=au&&!au.paused?au.currentTime:(performance.now()-t0)/1000; render(Math.min(t,DUR)); requestAnimationFrame(loop); }
-function start(from){ $('play').style.display='none'; t0=performance.now()-from*1000; if(au){ au.currentTime=from; au.play().catch(()=>{}); } if(navigator.vibrate&&!from) setTimeout(()=>navigator.vibrate(40),6400); run=true; loop(); }
-window.ready=Promise.all([tex(0,'plate.jpg'),tex(1,'char_'+CK+'.webp'),document.fonts.ready]).then(()=>{ render(0);
+let t0=0, run=false, au=null, fr=0, fT=0, worst=0, mark=0;
+function loop(){ if(!run) return; const now=performance.now(), t=au&&!au.paused?au.currentTime:(now-t0)/1000; render(Math.min(t,DUR));
+  // замер (?fps): кадров в секунду и худший кадр — для шага «скорость на телефоне»
+  if(Q.has('fps')){ if(fT) worst=Math.max(worst,now-fT); fT=now; if(++fr%60===0){ $('fps').textContent=`${(60000/(now-mark)).toFixed(0)} fps · найгірший кадр ${worst.toFixed(0)} мс`; mark=now; worst=0; } }
+  requestAnimationFrame(loop); }
+function start(from){ $('play').style.display='none'; t0=performance.now()-from*1000; mark=performance.now(); if(au){ au.currentTime=from; au.play().catch(()=>{}); } if(navigator.vibrate&&!from) setTimeout(()=>navigator.vibrate(40),6400); run=true; loop(); }
+window.ready=Promise.all([tex(0,'layers/plate.jpg'),tex(1,'char_'+CK+'.webp'),tex(3,'layers/lantern.webp'),tex(4,'layers/fog.jpg',true),tex(5,'layers/fx.jpg',true),img('wheel','layers/wheel.webp'),img('planets','layers/planets.webp'),document.fonts.ready]).then(()=>{ render(0);
   if(REC){ $('play').remove(); $('st').style.cssText+='left:0;top:0;margin:0;transform:none'; return; }
   fit(); addEventListener('resize',fit); au=new Audio('reveal.m4a'); au.preload='auto';
   $('play').addEventListener('click',()=>{ if(typeof DeviceOrientationEvent!=='undefined'&&DeviceOrientationEvent.requestPermission) DeviceOrientationEvent.requestPermission().catch(()=>{}); start(0); });
