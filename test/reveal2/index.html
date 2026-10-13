@@ -1,0 +1,180 @@
+<!doctype html><html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Відкриття карти — сцена v2</title>
+<!-- «Открытие карты» v2 (чат #0c, 13.10.2026): одна сцена на WebGL (один прямоугольник, шейдер), типографика — DOM.
+     Весь кадр — чистая функция времени render(t): так же пишется видео (Playwright → ffmpeg) и держится синхрон со звуком.
+     ?c=chen_04 — другой персонаж в той же сцене; ?rec=1 — режим записи. -->
+<style>
+@font-face{font-family:'Ysabeau';font-weight:300;src:url(ysabeau-cyrillic-300-normal.woff2)}
+@font-face{font-family:'YO';font-weight:500;src:url(ysabeau-office-cyrillic-500-normal.woff2)}
+@font-face{font-family:'Unb';font-weight:300;src:url(unbounded-cyrillic-300-normal.woff2)}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:#040209;overflow:hidden}
+#st{position:absolute;left:50%;top:50%;width:432px;height:768px;margin:-384px 0 0 -216px;font-family:'YO',sans-serif;color:#EDE7F7;transform-origin:50% 50%}
+#st>*{position:absolute}
+#cw{inset:0;transform-origin:50% 50%;will-change:transform}
+#cw canvas{width:100%;height:100%;display:block}
+#edge{inset:-1px;background:linear-gradient(180deg,#040209 0,transparent 12%,transparent 88%,#040209 100%);pointer-events:none}
+#frame{border:1.5px solid #D9B967;border-radius:18px;box-shadow:0 0 60px 8px rgba(217,185,103,.28),inset 0 0 0 5px rgba(4,2,9,.85),inset 0 0 0 6px rgba(217,185,103,.55);pointer-events:none}
+.cap{left:0;right:0;text-align:center;pointer-events:none}
+.ch{display:inline-block;white-space:pre;will-change:transform,opacity,filter}
+#date{top:366px;font:300 30px 'Unb';letter-spacing:.06em;color:#F1DFA6}
+#k1{top:556px;font:500 12px 'YO';letter-spacing:.2em;color:#B9AED3}
+#d1{top:580px;font:300 20px 'Unb';color:#F1DFA6;letter-spacing:.05em}
+#c1{top:616px;font-size:11.5px;letter-spacing:.3em;color:#8f84ad}
+#c2{top:586px;font:300 25px 'Ysabeau';color:#F3ECFF}
+#kick{top:512px;font:300 11px 'Unb';letter-spacing:.24em;color:#D9B967}
+#nm{top:530px;font:300 44px 'Ysabeau';line-height:1.15}
+#nm .ch{background:linear-gradient(100deg,#a8832f 0%,#f7e9b8 30%,#d9b967 50%,#fff6d6 68%,#a8832f 100%);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent}
+#sub{top:592px;font-size:15px;color:#B9AED3;letter-spacing:.02em}
+#act{top:620px;left:44px;right:44px;font:300 17px/1.35 'Ysabeau';color:#E4DAF6}
+#btn{left:44px;right:44px;top:690px;height:54px;border-radius:27px;border:0;background:linear-gradient(180deg,#ecd48d,#c9a24d);color:#1a0f36;font:500 17px 'YO';display:flex;align-items:center;justify-content:center;box-shadow:0 8px 30px rgba(217,185,103,.25)}
+#seal{width:74px;height:74px;border-radius:50%;background:#0b0620 center/cover;border:1.5px solid #D9B967;box-shadow:0 0 22px rgba(217,185,103,.5)}
+#skip{right:16px;top:14px;font-size:12.5px;color:#8f84ad;letter-spacing:.05em;padding:8px;background:none;border:0;font-family:inherit}
+#play{inset:0;display:flex;flex-direction:column;gap:10px;align-items:center;justify-content:center;background:#040209;font:300 22px 'Ysabeau';color:#F1DFA6;z-index:9;border:0;width:100%}
+#play small{font:500 12px 'YO';letter-spacing:.14em;color:#8f84ad}
+</style></head><body>
+<div id="st">
+ <div id="cw"><canvas id="gl"></canvas></div><div id="edge"></div><div id="frame"></div>
+ <div class="cap" id="date"></div>
+ <div class="cap" id="k1"></div><div class="cap" id="d1"></div><div class="cap" id="c1"></div><div class="cap" id="c2"></div>
+ <div id="seal"></div><div class="cap" id="kick"></div><div class="cap" id="nm"></div><div class="cap" id="sub"></div><div class="cap" id="act"></div>
+ <button id="btn" type="button">Відкрити мою карту</button><button id="skip" type="button">пропустити</button>
+ <button id="play" type="button">Відкрити карту<small>ЗІ ЗВУКОМ</small></button>
+</div>
+<script id="fs" type="x-shader/x-fragment">
+precision highp float;
+varying vec2 vUv;
+uniform sampler2D uPlate, uChar;
+uniform float uT, uAsp, uLight, uSil, uRev, uFlash, uFog, uLan, uZoom, uDust, uAmb;
+uniform vec2 uPar; uniform vec4 uRect;
+const vec2 L = vec2(.733,.325);
+float h(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
+float ns(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f); return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y); }
+float fbm(vec2 p){ float a=.5, s=0.; for(int i=0;i<4;i++){ s+=a*ns(p); p=p*2.03+vec2(7.1,3.3); a*=.5; } return s; }
+void main(){
+  vec2 uv = L + (vUv-L)/uZoom;
+  vec2 q = (uv-L)*vec2(uAsp,1.); float d = length(q);
+  float n = fbm(uv*vec2(3.,5.)+vec2(uT*.02,0.));
+  float fl = .9+.1*sin(uT*9.)*sin(uT*5.3+1.)+.05*sin(uT*23.);
+  // фон: свет фонаря «дотягивается» до неба и скалы
+  vec3 plate = texture2D(uPlate, uv + uPar*.004).rgb;
+  float light = smoothstep(uLight, uLight*.3, d + (n-.5)*.16);
+  vec3 col = plate*(light*(.82+.18*fl) + uAmb);
+  col += vec3(1.,.42,.18)*uLan*fl*(.34*exp(-d*13.)+.10*exp(-d*3.6));
+  { vec2 sp=(uv-vec2(uRect.x+uRect.z*.5, uRect.y+uRect.w*.985))/vec2(uRect.z*.62, uRect.w*.035); col*=1.-.6*uSil*exp(-dot(sp,sp)*1.6); }
+  // персонаж: настоящая картинка карты; силуэт, контровой контур и проявление считает шейдер
+  vec2 cuv = (uv - uRect.xy)/uRect.zw + uPar*.010;
+  if(cuv.x>0. && cuv.x<1. && cuv.y>0. && cuv.y<1.){
+    vec4 c = texture2D(uChar, cuv);
+    vec2 dir = normalize((L-uv)*vec2(uAsp,1.))/uRect.zw*vec2(1./uAsp,1.);
+    float rim = clamp(c.a - texture2D(uChar, cuv+dir*.011).a, 0., 1.);
+    float rim2 = clamp(c.a - texture2D(uChar, cuv+dir*.03).a, 0., 1.);
+    float rev = uRev<.01 ? 0. : smoothstep(uRev, uRev*.5, d + (n-.5)*.26);
+    vec3 lit = c.rgb*vec3(1.,.93,.84)*(.50+.62*exp(-d*2.4))*mix(1.,.62,smoothstep(.55,1.,cuv.y));
+    vec3 sil = c.rgb*.05*vec3(.8,.7,1.) + vec3(.020,.012,.032);
+    vec3 cc = mix(sil, lit, rev);
+    cc += (rim*1.1+rim2*.45)*vec3(1.,.66,.34)*max(uLan,.7)*fl*mix(1., .2, rev)*exp(-d*1.1);
+    float edge = smoothstep(uRev*.5, uRev*.78, d+(n-.5)*.26)*smoothstep(uRev*1.05, uRev*.8, d+(n-.5)*.26);
+    cc += vec3(1.,.8,.45)*edge*.5*step(.02,uRev)*step(uRev,2.4);
+    float feet = smoothstep(1., .9, cuv.y);
+    col = mix(col, cc, c.a*uSil*feet);
+  }
+  // туман перед ногами: три слоя, подсвечен фонарём
+  float band = smoothstep(.52,.98,uv.y);
+  float f1 = fbm(vec2(uv.x*2.1 - uT*.018, uv.y*3.4+uT*.004));
+  float f2 = fbm(vec2(uv.x*3.7 + uT*.027, uv.y*5.2)+4.);
+  float fog = clamp((f1*.75+f2*.45-.34)*1.7,0.,1.)*band;
+  vec3 fogc = vec3(.40,.34,.50)*(.10+.75*light+uAmb) + vec3(1.,.5,.25)*.22*exp(-d*3.2)*uLan;
+  col = mix(col, fogc, fog*uFog*.78);
+  // золотая пыль
+  if(uDust>0.){ float s=0.; for(int i=0;i<26;i++){ float fi=float(i); vec2 p=vec2(h(vec2(fi,1.3)), h(vec2(fi,7.7)));
+      float life=fract(h(vec2(fi,3.1))+uT*(.05+.05*h(vec2(fi,9.)))); p=L+(p-.5)*vec2(.9,.8)+vec2(sin(uT*.6+fi)*.012, .12-life*.3);
+      float dd=length((uv-p)*vec2(uAsp,1.)); s+=exp(-dd*dd*90000.)*sin(life*3.1416)*(.5+.5*sin(uT*4.+fi*2.)); }
+    col += vec3(1.,.8,.45)*s*uDust; }
+  // вспышка
+  col += vec3(1.,.80,.52)*uFlash*exp(-d*(5.-3.4*uFlash))*1.25;
+  col = mix(col, vec3(1.,.93,.80), uFlash*uFlash*.20*exp(-d*.9));
+  col *= 1.-.30*smoothstep(.45,1.1,length((vUv-.5)*vec2(.9,1.1)));
+  col += (h(vUv*800.+uT)-.5)*.018;
+  gl_FragColor = vec4(col,1.);
+}
+</script>
+<script>
+const Q=new URLSearchParams(location.search), REC=Q.has('rec'), CK=Q.get('c')==='chen_04'?'chen_04':'yin_13';
+const CARD={ yin_13:{name:'Тигр-Мандрівник', sub:'Земляний Тигр · Небесний Мандрівник', act:'Прокладаєш шлях там, де дороги ще немає, і розповідаєш про нього.', seal:'seal_13.webp', asp:566/891, h:.50, cx:.42, by:.90},
+             chen_04:{name:'Дракон-Розквіт', sub:'Дракон · Жовте Зерно', act:'Садиш ідею й терпляче доводиш її до плоду.', seal:'seal_04.webp', asp:600/1025, h:.50, cx:.42, by:.90} }[CK];
+const $=id=>document.getElementById(id), W=432, H=768, DUR=13.2;
+const cl=(x,a=0,b=1)=>Math.max(a,Math.min(b,x)), seg=(t,a,b)=>cl((t-a)/(b-a));
+const eo=x=>1-Math.pow(1-x,3), eo5=x=>1-Math.pow(1-x,5), ei=x=>x*x*x, eio=x=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;
+const back=x=>{ const c=1.70158; return 1+(c+1)*Math.pow(x-1,3)+c*Math.pow(x-1,2); };
+// ---------- типографика: каждая буква — свой слой
+function split(id,txt){ const el=$(id); el.textContent=''; return [...txt].map(c=>{ const s=document.createElement('span'); s.className='ch'; s.textContent=c; el.appendChild(s); return s; }); }
+const T={ date:split('date','05.06.1997'), k1:split('k1','НЕБО В МИТЬ ТВОГО НАРОДЖЕННЯ'), d1:split('d1','05.06.1997 · 05:10'), c1:split('c1','ХАРКІВ'),
+          c2:split('c2','Вісім систем — одна карта'), kick:split('kick','ІМ’Я ТВОЄЇ КАРТИ'), nm:split('nm',CARD.name), sub:split('sub',CARD.sub) };
+$('act').textContent=CARD.act; $('seal').style.backgroundImage=`url(${CARD.seal})`;
+// буквы входят снизу из размытия, уходят вверх в размытие; stagger — от центра или слева
+function letters(arr,t,a,b,o={}){ const st=o.st??.028, din=o.din??.5, dout=o.dout??.35, n=arr.length, mid=(n-1)/2;
+  arr.forEach((s,i)=>{ const k=o.center?Math.abs(i-mid):i, pin=eo5(seg(t,a+k*st,a+k*st+din)), pout=b==null?0:ei(seg(t,b+k*st*.5,b+k*st*.5+dout));
+    s.style.opacity=pin*(1-pout); s.style.transform=`translateY(${(1-pin)*(o.dy??14)-pout*10}px) scale(${.92+.08*pin})`; s.style.filter=pin<1||pout>0?`blur(${(1-pin)*6+pout*5}px)`:'none'; }); }
+// ---------- WebGL
+const cv=$('gl'), gl=cv.getContext('webgl',{antialias:false,alpha:false,preserveDrawingBuffer:REC});
+const DPR=Math.min(2,devicePixelRatio||1); cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR);
+function sh(type,src){ const s=gl.createShader(type); gl.shaderSource(s,src); gl.compileShader(s); if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; }
+const pr=gl.createProgram(); gl.attachShader(pr,sh(gl.VERTEX_SHADER,'attribute vec2 p;varying vec2 vUv;void main(){vUv=vec2(p.x*.5+.5,.5-p.y*.5);gl_Position=vec4(p,0.,1.);}'));
+gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,$('fs').textContent)); gl.linkProgram(pr); gl.useProgram(pr);
+gl.bindBuffer(gl.ARRAY_BUFFER,gl.createBuffer()); gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
+const lp=gl.getAttribLocation(pr,'p'); gl.enableVertexAttribArray(lp); gl.vertexAttribPointer(lp,2,gl.FLOAT,false,0,0);
+const U={}; ['uPlate','uChar','uT','uAsp','uLight','uSil','uRev','uFlash','uFog','uLan','uZoom','uDust','uAmb','uPar','uRect'].forEach(n=>U[n]=gl.getUniformLocation(pr,n));
+function tex(unit,src){ return new Promise(res=>{ const im=new Image(); im.onload=()=>{ const t=gl.createTexture(); gl.activeTexture(gl.TEXTURE0+unit); gl.bindTexture(gl.TEXTURE_2D,t);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,im); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE); res(); }; im.src=src; }); }
+const cw=CARD.h*CARD.asp*(H/W), RECT=[CARD.cx-cw/2, CARD.by-CARD.h, cw, CARD.h];
+let par=[0,0], parT=[0,0];
+// ---------- кадр как функция времени
+function render(t){
+  // 1. дата стягивается в искру (0–0.9)
+  const dz=seg(t,.15,.85); T.date.forEach((s,i)=>{ const k=i-(T.date.length-1)/2; s.style.opacity=1-ei(dz); s.style.transform=`translateX(${-k*19*eio(dz)}px) scale(${1-.5*dz})`; s.style.filter=`blur(${dz*5}px)`; });
+  // свет: искра → фонарь → небо
+  const lan=eo(seg(t,.5,1.6))*(1-.75*seg(t,5.3,6.2))+ .75*eo(seg(t,6.4,6.5))+.25*seg(t,6.5,7.5);
+  const light=.02+.16*eo(seg(t,.9,2.2))+1.5*eio(seg(t,2.2,4.6))-.95*eio(seg(t,5.2,6.3))+1.4*eo(seg(t,6.4,7.4));
+  const sil=eio(seg(t,5.1,6.0)), rev=t<6.45?0:.05+2.6*eo(seg(t,6.5,8.6));
+  const flash=t<6.4?0:t<6.52?seg(t,6.4,6.52):1-eo(seg(t,6.52,7.5));
+  const zoom=1+.035*seg(t,1,5.2)+.07*eio(seg(t,5.2,6.4))-.04*eo(seg(t,6.4,7.3))+.025*seg(t,7.3,9.4);
+  par=[par[0]+(parT[0]-par[0])*.08, par[1]+(parT[1]-par[1])*.08];
+  gl.viewport(0,0,cv.width,cv.height);
+  gl.uniform1i(U.uPlate,0); gl.uniform1i(U.uChar,1); gl.uniform1f(U.uT,t); gl.uniform1f(U.uAsp,W/H);
+  gl.uniform1f(U.uLight,light); gl.uniform1f(U.uSil,sil); gl.uniform1f(U.uRev,rev); gl.uniform1f(U.uFlash,flash);
+  gl.uniform1f(U.uFog,eo(seg(t,.9,2.4))); gl.uniform1f(U.uLan,lan); gl.uniform1f(U.uZoom,zoom); gl.uniform1f(U.uDust,seg(t,6.6,7.4)*(1-.6*seg(t,10,12)));
+  gl.uniform1f(U.uAmb,.05*seg(t,7,9)); gl.uniform2f(U.uPar,par[0],par[1]); gl.uniform4f(U.uRect,...RECT);
+  gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+  // 3–4. подписи
+  letters(T.k1,t,2.7,4.05,{st:.016}); letters(T.d1,t,2.95,4.12,{st:.03,center:true}); letters(T.c1,t,3.25,4.2,{st:.05,center:true});
+  letters(T.c2,t,4.35,5.15,{st:.022,din:.45});
+  // 9. сцена становится картой
+  const k=eio(seg(t,9.4,10.5)), sc=1-.42*k; $('cw').style.transform=`translateY(${-112*k}px) scale(${sc})`; $('cw').style.borderRadius=k>0?(18/sc)+'px':'0'; $('cw').style.overflow=k>0?'hidden':'visible';
+  const fw=W*.58, fh=H*.58, fx=(W-fw)/2, fy=(H-fh)/2-112; Object.assign($('frame').style,{left:fx+'px',top:fy+'px',width:fw+'px',height:fh+'px',opacity:eo(seg(t,10.1,10.6))});
+  $('edge').style.opacity=1-k;
+  // 10. печать, имя, подпись, кнопка
+  const sp=seg(t,10.6,10.95); Object.assign($('seal').style,{left:(fx+fw-52)+'px',top:(fy+fh-48)+'px',opacity:cl(sp*5),transform:`scale(${2.4-1.4*back(sp)}) rotate(${(1-eo(sp))*-18}deg)`});
+  letters(T.kick,t,10.75,null,{st:.02,center:true,dy:6});
+  letters(T.nm,t,10.95,null,{st:.055,din:.7,dy:22}); const sw=seg(t,11.0,12.6); T.nm.forEach((s,i)=>{ s.style.backgroundPosition=`${100-sw*100-i*4}% 0`; });
+  letters(T.sub,t,11.6,null,{st:.012,dy:8});
+  const a=eo(seg(t,11.9,12.5)); $('act').style.opacity=a; $('act').style.transform=`translateY(${(1-a)*10}px)`;
+  const b=eo(seg(t,12.3,12.9)); $('btn').style.opacity=b; $('btn').style.transform=`translateY(${(1-b)*14}px)`; $('btn').style.pointerEvents=b>.9?'auto':'none';
+  $('skip').style.opacity=seg(t,1,1.5)*(1-seg(t,10.4,10.8));
+}
+window.render=render;
+// ---------- запуск
+function fit(){ const s=Math.min(innerWidth/W,innerHeight/H); $('st').style.transform=`scale(${s})`; }
+let t0=0, run=false, au=null;
+function loop(){ if(!run) return; const t=au&&!au.paused?au.currentTime:(performance.now()-t0)/1000; render(Math.min(t,DUR)); requestAnimationFrame(loop); }
+function start(from){ $('play').style.display='none'; t0=performance.now()-from*1000; if(au){ au.currentTime=from; au.play().catch(()=>{}); } if(navigator.vibrate&&!from) setTimeout(()=>navigator.vibrate(40),6400); run=true; loop(); }
+window.ready=Promise.all([tex(0,'plate.jpg'),tex(1,'char_'+CK+'.webp'),document.fonts.ready]).then(()=>{ render(0);
+  if(REC){ $('play').remove(); $('st').style.cssText+='left:0;top:0;margin:0;transform:none'; return; }
+  fit(); addEventListener('resize',fit); au=new Audio('reveal.m4a'); au.preload='auto';
+  $('play').addEventListener('click',()=>{ if(typeof DeviceOrientationEvent!=='undefined'&&DeviceOrientationEvent.requestPermission) DeviceOrientationEvent.requestPermission().catch(()=>{}); start(0); });
+  $('skip').addEventListener('click',()=>{ if(au) au.pause(); au=null; t0=performance.now()-DUR*1000; });
+  $('btn').addEventListener('click',()=>{ run=false; if(au) au.pause(); au=new Audio('reveal.m4a'); $('play').style.display='flex'; $('play').firstChild.textContent='Ще раз'; render(0); });
+  addEventListener('deviceorientation',e=>{ parT=[cl((e.gamma||0)/25,-1,1), cl(((e.beta||45)-45)/25,-1,1)]; });
+  addEventListener('pointermove',e=>{ parT=[cl((e.clientX/innerWidth-.5)*2,-1,1), cl((e.clientY/innerHeight-.5)*2,-1,1)]; });
+});
+</script></body></html>
