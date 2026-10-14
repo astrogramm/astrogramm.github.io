@@ -1,0 +1,37 @@
+/* ==== «Открытие карты» v3 (14.10, app/v12/reveal3.js; сцена — app/design-variants/reveal/scene-v2) ==== */
+.rv{position:fixed;inset:0;z-index:2000;overflow:hidden;background:#040209;color:#EDE7F7;font-family:var(--font-body,'Ysabeau Office');transition:opacity .45s;opacity:0}
+.rv.on{opacity:1}.rv.out{opacity:0}
+.rv3st{position:absolute;left:0;top:0;transform-origin:0 0}
+.rv3st>*{position:absolute}
+.rv3cw{inset:0}.rv3cw canvas{width:100%;height:100%;display:block}
+.rv3sys{inset:0;pointer-events:none}
+.rv3sys img{position:absolute;left:0;top:0;width:68px;height:68px;margin:-34px 0 0 -34px;will-change:transform,opacity;opacity:0;filter:drop-shadow(0 0 8px rgba(255,205,130,.7)) brightness(1.15)}
+.rv3edge{inset:-1px;background:linear-gradient(180deg,#040209 0,transparent 12%,transparent 88%,#040209 100%);pointer-events:none}
+.rv3pl{left:0;right:0}.rv3pl>*{position:absolute}
+.rv3cap{left:0;right:0;text-align:center;pointer-events:none}
+.rv3cap .ch{display:inline-block;white-space:pre;will-change:transform,opacity,filter;opacity:0}
+.rv3date{top:366px;font:300 30px var(--font-num,'Unbounded');letter-spacing:.06em;color:#F1DFA6}
+.rv3k1{top:556px;font:500 12px var(--font-body,'Ysabeau Office');letter-spacing:.2em;color:#B9AED3}
+.rv3d1{top:580px;font:300 20px var(--font-num,'Unbounded');color:#F1DFA6;letter-spacing:.05em}
+.rv3c1{top:616px;font-size:11.5px;letter-spacing:.3em;color:#8f84ad}
+.rv3c2{top:586px;font:300 25px var(--font-display,'Ysabeau');color:#F3ECFF}
+.rv3kick{top:512px;font:300 11px var(--font-num,'Unbounded');letter-spacing:.24em;color:#D9B967}
+.rv3nm{top:530px;font:300 44px/1.15 var(--font-display,'Ysabeau')}
+.rv3nm .ch{background:linear-gradient(100deg,#a8832f 0%,#f7e9b8 30%,#d9b967 50%,#fff6d6 68%,#a8832f 100%);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent}
+.rv3sub{top:592px;font-size:15px;color:#B9AED3;letter-spacing:.02em}
+.rv3act{top:620px;left:44px;right:44px;font:300 17px/1.35 var(--font-display,'Ysabeau');color:#E4DAF6;opacity:0}
+.rv3 .rvbtn{left:44px;right:44px;top:690px;width:auto;max-width:none;height:54px;min-height:54px;margin:0;border-radius:27px;border:0;background:linear-gradient(180deg,#ecd48d,#c9a24d);color:#1a0f36;font:500 17px var(--font-body,'Ysabeau Office');display:flex;align-items:center;justify-content:center;box-shadow:0 8px 30px rgba(217,185,103,.25);opacity:0;pointer-events:none;animation:none}
+.rv3seal{width:74px;height:74px;border-radius:50%;background:#0b0620 center/cover;border:1.5px solid #D9B967;box-shadow:0 0 22px rgba(217,185,103,.5);opacity:0}
+.rv3 .rvskip{position:absolute;left:auto;right:16px;top:14px;bottom:auto;transform:none;font-size:12.5px;color:#8f84ad;letter-spacing:.05em;padding:8px;min-height:44px;background:none;border:0;border-radius:0;z-index:6;font-family:inherit;opacity:0}
+.rv3st.done .rvskip{display:none}
+.rv3 .rvface{display:none}
+/* удержание (после «Открыть мою карту»): «Поделиться именем» под кнопкой, просьба об уведомлении — в .rvwrap */
+.rv3 .rvsh{position:absolute;left:44px;right:44px;top:752px;width:auto;max-width:none;margin:0;opacity:0;pointer-events:none}
+.rv3st.done .rvsh{opacity:1;pointer-events:auto}
+.rv3 .rvwrap{position:absolute;left:0;right:0;top:560px;text-align:center;padding:0 22px;z-index:4}
+.rv3 .rvwrap .rvkick{font-size:12px;letter-spacing:.34em;color:#D9B967;opacity:1}
+.rv3 .rvwrap .rvbtn{position:relative;left:auto;right:auto;top:auto;width:100%;max-width:340px;margin:16px auto 0;opacity:1;pointer-events:auto}
+.rv3st.done .rv3pl>.rv3date,.rv3st.done .rv3pl>.rv3k1,.rv3st.done .rv3pl>.rv3d1,.rv3st.done .rv3pl>.rv3c1,.rv3st.done .rv3pl>.rv3c2{display:none}
+.rv3nogl .rv3pl>*{opacity:1!important}
+.rv3.ask .rv3pl>.rv3cap,.rv3.ask .rv3pl>.rvbtn,.rv3.ask .rvsh,.rv3.ask .rv3seal{display:none}
+
