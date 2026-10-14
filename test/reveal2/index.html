@@ -129,9 +129,11 @@ void main(){
 }
 </script>
 <script>
-const Q=new URLSearchParams(location.search), REC=Q.has('rec'), CK=Q.get('c')==='chen_04'?'chen_04':'yin_13';
-const CARD={ yin_13:{name:'Тигр-Мандрівник', sub:'Земляний Тигр · Небесний Мандрівник', act:'Прокладаєш шлях там, де дороги ще немає, і розповідаєш про нього.', seal:'seal_13.webp', asp:566/891, h:.46, cx:.62, by:.77},
-             chen_04:{name:'Дракон-Розквіт', sub:'Дракон · Жовте Зерно', act:'Садиш ідею й терпляче доводиш її до плоду.', seal:'seal_04.webp', asp:600/1025, h:.46, cx:.62, by:.77} }[CK];
+const Q=new URLSearchParams(location.search), REC=Q.has('rec'), CK=(Q.get('c')||'yin_13').replace(/[^a-z0-9_]/g,'');
+// любой из 240: ?c=<ветвь>_<печать>; картинка — вырезка cut/name_<ключ>.webp (app/tools/name_masks.py), размер — layers/chars.json; подписи для чужих ключей — заглушка
+const NAMES={ yin_13:{name:'Тигр-Мандрівник', sub:'Земляний Тигр · Небесний Мандрівник', act:'Прокладаєш шлях там, де дороги ще немає, і розповідаєш про нього.', seal:'seal_13.webp'},
+              chen_04:{name:'Дракон-Розквіт', sub:'Дракон · Жовте Зерно', act:'Садиш ідею й терпляче доводиш її до плоду.', seal:'seal_04.webp'} };
+const CARD=Object.assign({name:'Ім’я карти', sub:'підпис · печать', act:'Дія карти — текст із ядра.', seal:'seal_13.webp', h:.46, cx:.62, by:.77}, NAMES[CK]||{});
 // небо рождения — данные ядра (chart.py, карта основателя 05.06.1997 05:10 Харьков); в приложении — rvData.planets / rvData.asc
 const SKY={asc:83.718, planets:[['sun',74.47,1],['moon',71.94,.74],['mercury',53.54,.86],['venus',91.11,.86],['mars',174.34,1],['jupiter',321.9,1],['saturn',17.69,1],['uranus',308.46,.78],['neptune',299.66,.9],['pluto',243.94,.9]]};
 const PL=['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto'];
@@ -146,7 +148,7 @@ const L=[.35,.45];                         // огонёк / огонь фона
 const WC=[.5,.33], WR=.32;                // круг неба: центр, половина стороны картинки (uv.x)
 const SKYRECT=[WC[0]-WR, WC[1]-WR*PA, WR*2, WR*2*PA];
 const LW=.27, LANTRECT=[L[0]-.49*LW, L[1]-.60*LW*PA, LW, LW*PA];   // огонь фонаря в картинке — (0.49, 0.60)
-const cw=CARD.h*CARD.asp*(H/W), RECT=[CARD.cx-cw/2, CARD.by-CARD.h, cw, CARD.h];
+let RECT=[0,0,0,0];   // считается после загрузки chars.json: ширина — по пропорции вырезки, ноги — на скале
 // ---------- типографика: каждая буква — свой слой
 function split(id,txt){ const el=$(id); el.textContent=''; return [...txt].map(c=>{ const s=document.createElement('span'); s.className='ch'; s.textContent=c; el.appendChild(s); return s; }); }
 const T={ date:split('date','05.06.1997'), k1:split('k1','НЕБО В МИТЬ ТВОГО НАРОДЖЕННЯ'), d1:split('d1','05.06.1997 · 05:10'), c1:split('c1','ХАРКІВ'),
@@ -248,7 +250,8 @@ function loop(){ if(!run) return; const now=performance.now(), t=au&&!au.paused?
   if(Q.has('fps')){ if(fT) worst=Math.max(worst,now-fT); fT=now; if(++fr%60===0){ $('fps').textContent=`${(60000/(now-mark)).toFixed(0)} fps · найгірший кадр ${worst.toFixed(0)} мс`; mark=now; worst=0; } }
   requestAnimationFrame(loop); }
 function start(from){ $('play').style.display='none'; t0=performance.now()-from*1000; mark=performance.now(); if(au){ au.currentTime=from; au.play().catch(()=>{}); } if(navigator.vibrate&&!from) setTimeout(()=>navigator.vibrate(40),6400); run=true; loop(); }
-window.ready=Promise.all([tex(0,'layers/plate.jpg'),tex(1,'char_'+CK+'.webp'),tex(3,'layers/lantern.webp'),tex(4,'layers/fog.jpg',true),tex(5,'layers/fx.jpg',true),img('wheel','layers/wheel.webp'),img('planets','layers/planets.webp'),document.fonts.ready]).then(()=>{ render(0);
+window.ready=fetch('layers/chars.json').then(r=>r.json()).then(ch=>{ const sz=ch[CK]||[600,900]; const cw=CARD.h*(sz[0]/sz[1])*(H/W); RECT=[CARD.cx-cw/2, CARD.by-CARD.h, cw, CARD.h];
+  return Promise.all([tex(0,'layers/plate.jpg'),tex(1,'cut/name_'+CK+'.webp'),tex(3,'layers/lantern.webp'),tex(4,'layers/fog.jpg',true),tex(5,'layers/fx.jpg',true),img('wheel','layers/wheel.webp'),img('planets','layers/planets.webp'),document.fonts.ready]); }).then(()=>{ render(0);
   if(REC){ $('play').remove(); $('st').style.cssText+='left:0;top:0;margin:0;transform:none'; return; }
   fit(); addEventListener('resize',fit); au=new Audio('reveal.m4a'); au.preload='auto';
   $('play').addEventListener('click',()=>{ if(typeof DeviceOrientationEvent!=='undefined'&&DeviceOrientationEvent.requestPermission) DeviceOrientationEvent.requestPermission().catch(()=>{}); start(0); });
