@@ -908,6 +908,7 @@ h1,h2,h3,.pname,.ttl{font-family:var(--font-display)}
 .orbart{position:absolute;inset:0;border-radius:50%;background-size:114%;background-position:center;background-repeat:no-repeat;
   -webkit-mask:radial-gradient(circle,#000 64%,transparent 71%);mask:radial-gradient(circle,#000 64%,transparent 71%)}
 .orbart img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;transform:scale(1.14)}
+.orbart.orbchar img{object-position:50% 0;transform:scale(1.55);transform-origin:50% 18%}   /* персонаж имени: голова и плечи в круге */
 .orbslot{position:absolute;inset:4px;border-radius:50%;border:1.3px dashed rgba(230,199,122,.55);background:radial-gradient(circle,rgba(246,226,163,.14),transparent 70%)}
 .orbseal{position:absolute;right:-3%;bottom:1%;width:34%;height:34%;border-radius:50%;background:var(--am-night);box-shadow:0 0 0 2px var(--am-gold),0 0 0 5px var(--am-night)}
 .orbhalo{position:absolute;border-radius:50%;pointer-events:none;transition:opacity .4s}
@@ -5802,7 +5803,7 @@ if(agn()&&AGN.ready&&AGN.ready.then) AGN.ready.then(afterBridge,afterBridge);
    после первого кадра; (2) центр ленты ставит ResizeObserver после естественной раскладки кадра, без чтения offsetLeft в коде
    отрисовки (принудительная раскладка); (3) контекст года (365 баллов) до первого кадра берётся из сохранённого, сам расчёт —
    после первого кадра частями по месяцу; разошлось — сохраняем новый и перерисовываем. Тексты и расчёт не меняются. */
-var AG_BUILD='8d175a06507f';                     // make_v12: хэш страницы — другая сборка = другой ключ сохранённого контекста
+var AG_BUILD='e78a21fc7bfd';                     // make_v12: хэш страницы — другая сборка = другой ключ сохранённого контекста
 var _aff=[], _affDone=false;
 function afterFirstFrame(fn){ if(_affDone){ setTimeout(fn,0); return; } _aff.push(fn); }
 W3.afterFirstFrame=afterFirstFrame;
@@ -7813,8 +7814,10 @@ function orbMedal(a){
     name:nm&&nm['имя']||'', sub:nm&&nm['подпись']||'', act:nm&&nm['действие']||''};
 }
 function orbMedalHTML(m,size){
+  // #0c 22.10: в центре — персонаж имени (name_<ветвь>_<печать>, голова и плечи); нет картинки — животное ветви (как раньше)
+  var ck=null; try{ ck=m.animal&&m.seal?nmCharKey(m.animal,m.seal):null; }catch(e){}
   return '<div class="orbhalo" style="inset:-'+Math.round(size*.28)+'px;background:radial-gradient(circle,'+orbAlpha(ORB_EL_COL[m.el],.34)+',transparent 68%)"></div>'
-    +illo(m.animal?'branch_'+m.animal:null)
+    +(ck?illo(ck,null,'orbchar'):illo(m.animal?'branch_'+m.animal:null))
     +(m.seal?'<div class="orbseal">'+illo('seal_'+String(m.seal).padStart(2,'0'))+'</div>':'');
 }
 function orbAlpha(hex,a){ var h=String(hex||'#E6C77A').replace('#',''); return 'rgba('+parseInt(h.slice(0,2),16)+','+parseInt(h.slice(2,4),16)+','+parseInt(h.slice(4,6),16)+','+a+')'; }
