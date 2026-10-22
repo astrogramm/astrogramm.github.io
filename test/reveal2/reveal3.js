@@ -7,7 +7,7 @@
    синхрон со звуком. Правила: DPR ≤ 2, в шейдере нет циклов и шума — всё из текстур. */
 var RV3=(function(){
   var W=432, PA=768/1376, SPEED=2, DUR=13.4/SPEED, PL=['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto'], SYS=['natal','bazi','matrix','hd','num','fengshui','jyotish','tzolkin'];
-  var L=[.35,.45], WC=[.5,.33], WR=.32, LW=.27;   // огонёк, круг неба (центр, половина стороны), ширина фонаря — в uv фона 768×1376
+  var L=[.35,.45], WC=[.5,.33], WR=.32, LW=.32;   // 20.10: фонарь в живой сцене мелковат — .27 → .32   // огонёк, круг неба (центр, половина стороны), ширина фонаря — в uv фона 768×1376
   var SKYRECT=[WC[0]-WR, WC[1]-WR*PA, WR*2, WR*2*PA], LANTRECT=[L[0]-.49*LW, L[1]-.60*LW*PA, LW, LW*PA];
   var FS='precision highp float;varying vec2 vUv;uniform sampler2D uPlate,uChar,uSky,uLant,uFog,uFx;'
   +'uniform float uT,uLight,uSil,uRev,uFlash,uFogA,uLan,uZoom,uDust,uAmb,uS,uSc,uCardA,uWind,uBreath,uSkyA,uLantA,uLantOn,uSpark,uK;'
@@ -84,7 +84,9 @@ var RV3=(function(){
     function img(k,src){ return new Promise(function(r){ var i=new Image(); i.onload=function(){ IMG[k]=i; r(); }; i.onerror=function(){ r(); }; i.src=src; }); }
     var asc=X.asc||0, SKP=(X.planets||[]).map(function(p){ var a=Math.PI-(p[1]-asc)*Math.PI/180; return {k:p[0],w:p[2]||1,a:a,ord:((Math.PI/2-a)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)}; }).sort(function(x,y){ return x.ord-y.ord; });
     function drawSky(prog,fly,glow){ var c=skx, cx=512, cy=512, R=512*.78, A0=-Math.PI/2; c.clearRect(0,0,1024,1024); if(!IMG.wheel) return;
-      c.save(); c.beginPath(); c.moveTo(cx,cy); c.arc(cx,cy,560,A0-Math.PI*prog,A0+Math.PI*prog); c.closePath(); c.clip(); c.globalAlpha=.95; c.drawImage(IMG.wheel,0,0,1024,1024); c.restore(); c.globalAlpha=1;
+      c.save(); c.beginPath(); c.moveTo(cx,cy); c.arc(cx,cy,560,A0-Math.PI*prog,A0+Math.PI*prog); c.closePath(); c.clip(); c.globalAlpha=.95; c.drawImage(IMG.wheel,0,0,1024,1024);
+      /* 20.10: центр круга Gemini («солнце») ярковат — приглушить тёмным пятном с мягким краем, не трогая кольцо созвездий */
+      var gd=c.createRadialGradient(cx,cy,0,cx,cy,R*.34); gd.addColorStop(0,'rgba(8,4,18,.72)'); gd.addColorStop(.6,'rgba(8,4,18,.35)'); gd.addColorStop(1,'rgba(8,4,18,0)'); c.fillStyle=gd; c.beginPath(); c.arc(cx,cy,R*.34,0,6.283); c.fill(); c.restore(); c.globalAlpha=1;
       var sx=(L[0]-SKYRECT[0])/SKYRECT[2]*1024, sy=(L[1]-SKYRECT[1])/SKYRECT[3]*1024;
       SKP.forEach(function(p,i){ var k=eo(cl(fly-i*.55)); if(k<=0) return; var tx=cx+R*Math.cos(p.a), ty=cy+R*Math.sin(p.a);
         var x=sx+(tx-sx)*k, y=sy+(ty-sy)*k-Math.sin(k*Math.PI)*60, s=38*p.w*(.6+.4*k), pop=1+.5*Math.sin(cl((fly-i*.55-1)*3)*Math.PI);
@@ -144,7 +146,7 @@ var RV3=(function(){
       letters(T.sub,t,11.6,null,{st:.012,dy:8});
       var a=eo(seg(t,11.9,12.5)), ae=$('rv3act'); ae.style.opacity=a; ae.style.transform='translateY('+((1-a)*10)+'px)';
       var b=eo(seg(t,12.3,12.9)), be=$('rv3btn'); be.style.opacity=b; be.style.transform='translateY('+((1-b)*14)+'px)'; be.style.pointerEvents=b>.9?'auto':'none';
-      $('rv3skip').style.opacity=seg(t,.1,.5)*(1-seg(t,10.4,10.8));
+      var sk=$('rv3skip'), skv=1-seg(t,12.3,12.6); sk.style.opacity=skv; sk.style.pointerEvents=skv>.5?'auto':'none';   // 22.10: «пропустити» видна с первой секунды и до появления «Відкрити мою карту»
       if(tr>=DUR&&!api.done){ api.done=true; root.classList.add('done'); }
     }
     var api={render:render,setSize:setSize,DUR:DUR,done:false,t0:0,run:false,au:null};

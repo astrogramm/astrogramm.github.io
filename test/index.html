@@ -1122,7 +1122,7 @@ html body .w3first .w3h{margin:30px 0 6px}
 .rv3act{top:620px;left:44px;right:44px;font:300 17px/1.35 var(--font-display,'Ysabeau');color:#E4DAF6;opacity:0}
 .rv3 .rvbtn{left:44px;right:44px;top:690px;width:auto;max-width:none;height:54px;min-height:54px;margin:0;border-radius:27px;border:0;background:linear-gradient(180deg,#ecd48d,#c9a24d);color:#1a0f36;font:500 17px var(--font-body,'Ysabeau Office');display:flex;align-items:center;justify-content:center;box-shadow:0 8px 30px rgba(217,185,103,.25);opacity:0;pointer-events:none;animation:none}
 .rv3seal{width:74px;height:74px;border-radius:50%;background:#0b0620 center/cover;border:1.5px solid #D9B967;box-shadow:0 0 22px rgba(217,185,103,.5);opacity:0}
-.rv3 .rvskip{position:absolute;left:auto;right:16px;top:14px;bottom:auto;transform:none;font-size:12.5px;color:#8f84ad;letter-spacing:.05em;padding:8px;min-height:44px;background:none;border:0;border-radius:0;z-index:6;font-family:inherit;opacity:0}
+.rv3 .rvskip{opacity:1;position:absolute;left:auto;right:16px;top:14px;bottom:auto;transform:none;font-size:12.5px;color:#8f84ad;letter-spacing:.05em;padding:8px;min-height:44px;background:none;border:0;border-radius:0;z-index:6;font-family:inherit;opacity:0}
 .rv3st.done .rvskip{display:none}
 .rv3 .rvface{display:none}
 /* удержание (после «Открыть мою карту»): «Поделиться именем» под кнопкой, просьба об уведомлении — в .rvwrap */
@@ -5834,7 +5834,7 @@ if(agn()&&AGN.ready&&AGN.ready.then) AGN.ready.then(afterBridge,afterBridge);
    после первого кадра; (2) центр ленты ставит ResizeObserver после естественной раскладки кадра, без чтения offsetLeft в коде
    отрисовки (принудительная раскладка); (3) контекст года (365 баллов) до первого кадра берётся из сохранённого, сам расчёт —
    после первого кадра частями по месяцу; разошлось — сохраняем новый и перерисовываем. Тексты и расчёт не меняются. */
-var AG_BUILD='6a9c92cb63c4';                     // make_v12: хэш страницы — другая сборка = другой ключ сохранённого контекста
+var AG_BUILD='8d175a06507f';                     // make_v12: хэш страницы — другая сборка = другой ключ сохранённого контекста
 var _aff=[], _affDone=false;
 function afterFirstFrame(fn){ if(_affDone){ setTimeout(fn,0); return; } _aff.push(fn); }
 W3.afterFirstFrame=afterFirstFrame;
@@ -7623,7 +7623,7 @@ window.godText=godText;
    синхрон со звуком. Правила: DPR ≤ 2, в шейдере нет циклов и шума — всё из текстур. */
 var RV3=(function(){
   var W=432, PA=768/1376, SPEED=2, DUR=13.4/SPEED, PL=['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto'], SYS=['natal','bazi','matrix','hd','num','fengshui','jyotish','tzolkin'];
-  var L=[.35,.45], WC=[.5,.33], WR=.32, LW=.27;   // огонёк, круг неба (центр, половина стороны), ширина фонаря — в uv фона 768×1376
+  var L=[.35,.45], WC=[.5,.33], WR=.32, LW=.32;   // 20.10: фонарь в живой сцене мелковат — .27 → .32   // огонёк, круг неба (центр, половина стороны), ширина фонаря — в uv фона 768×1376
   var SKYRECT=[WC[0]-WR, WC[1]-WR*PA, WR*2, WR*2*PA], LANTRECT=[L[0]-.49*LW, L[1]-.60*LW*PA, LW, LW*PA];
   var FS='precision highp float;varying vec2 vUv;uniform sampler2D uPlate,uChar,uSky,uLant,uFog,uFx;'
   +'uniform float uT,uLight,uSil,uRev,uFlash,uFogA,uLan,uZoom,uDust,uAmb,uS,uSc,uCardA,uWind,uBreath,uSkyA,uLantA,uLantOn,uSpark,uK;'
@@ -7700,7 +7700,9 @@ var RV3=(function(){
     function img(k,src){ return new Promise(function(r){ var i=new Image(); i.onload=function(){ IMG[k]=i; r(); }; i.onerror=function(){ r(); }; i.src=src; }); }
     var asc=X.asc||0, SKP=(X.planets||[]).map(function(p){ var a=Math.PI-(p[1]-asc)*Math.PI/180; return {k:p[0],w:p[2]||1,a:a,ord:((Math.PI/2-a)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)}; }).sort(function(x,y){ return x.ord-y.ord; });
     function drawSky(prog,fly,glow){ var c=skx, cx=512, cy=512, R=512*.78, A0=-Math.PI/2; c.clearRect(0,0,1024,1024); if(!IMG.wheel) return;
-      c.save(); c.beginPath(); c.moveTo(cx,cy); c.arc(cx,cy,560,A0-Math.PI*prog,A0+Math.PI*prog); c.closePath(); c.clip(); c.globalAlpha=.95; c.drawImage(IMG.wheel,0,0,1024,1024); c.restore(); c.globalAlpha=1;
+      c.save(); c.beginPath(); c.moveTo(cx,cy); c.arc(cx,cy,560,A0-Math.PI*prog,A0+Math.PI*prog); c.closePath(); c.clip(); c.globalAlpha=.95; c.drawImage(IMG.wheel,0,0,1024,1024);
+      /* 20.10: центр круга Gemini («солнце») ярковат — приглушить тёмным пятном с мягким краем, не трогая кольцо созвездий */
+      var gd=c.createRadialGradient(cx,cy,0,cx,cy,R*.34); gd.addColorStop(0,'rgba(8,4,18,.72)'); gd.addColorStop(.6,'rgba(8,4,18,.35)'); gd.addColorStop(1,'rgba(8,4,18,0)'); c.fillStyle=gd; c.beginPath(); c.arc(cx,cy,R*.34,0,6.283); c.fill(); c.restore(); c.globalAlpha=1;
       var sx=(L[0]-SKYRECT[0])/SKYRECT[2]*1024, sy=(L[1]-SKYRECT[1])/SKYRECT[3]*1024;
       SKP.forEach(function(p,i){ var k=eo(cl(fly-i*.55)); if(k<=0) return; var tx=cx+R*Math.cos(p.a), ty=cy+R*Math.sin(p.a);
         var x=sx+(tx-sx)*k, y=sy+(ty-sy)*k-Math.sin(k*Math.PI)*60, s=38*p.w*(.6+.4*k), pop=1+.5*Math.sin(cl((fly-i*.55-1)*3)*Math.PI);
@@ -7760,7 +7762,7 @@ var RV3=(function(){
       letters(T.sub,t,11.6,null,{st:.012,dy:8});
       var a=eo(seg(t,11.9,12.5)), ae=$('rv3act'); ae.style.opacity=a; ae.style.transform='translateY('+((1-a)*10)+'px)';
       var b=eo(seg(t,12.3,12.9)), be=$('rv3btn'); be.style.opacity=b; be.style.transform='translateY('+((1-b)*14)+'px)'; be.style.pointerEvents=b>.9?'auto':'none';
-      $('rv3skip').style.opacity=seg(t,.1,.5)*(1-seg(t,10.4,10.8));
+      var sk=$('rv3skip'), skv=1-seg(t,12.3,12.6); sk.style.opacity=skv; sk.style.pointerEvents=skv>.5?'auto':'none';   // 22.10: «пропустити» видна с первой секунды и до появления «Відкрити мою карту»
       if(tr>=DUR&&!api.done){ api.done=true; root.classList.add('done'); }
     }
     var api={render:render,setSize:setSize,DUR:DUR,done:false,t0:0,run:false,au:null};
@@ -8395,7 +8397,7 @@ obRender=function(){
     if(h1) h1.insertAdjacentElement('afterend',med); }
   var res=document.createElement('div'); res.id='nm-res'; res.className='nmres'; res.setAttribute('aria-live','polite');
   var nx=$('ob-next'); if(nx&&!$('nm-res')) nx.insertAdjacentElement('beforebegin',res);
-  var hint=document.createElement('p'); hint.className='w3note nmhint'; hint.textContent="Потрібна лише дата — ім’я з’явиться одразу. Час і місто відкриють усю карту.";
+  var hint=document.createElement('p'); hint.className='w3note nmhint'; hint.textContent="Потрібна лише дата — ім’я з’явиться одразу. Тварина — за днем народження, а не за роком. Час і місто відкриють усю карту.";   // аудит 08.10 №4: человек 1992 года ждёт Обезьяну по году
   if(nx&&!box.querySelector('.nmhint')) nx.insertAdjacentElement('afterend',hint);
   var ring=box.querySelector('.nmring'), cur=2, stop=false;
   clearInterval(W3._nmT); W3._nmT=setInterval(function(){ if(stop||!document.body.contains(ring)){ return; } var a=ring.children; a[cur].className=''; cur=(cur+1)%12; a[cur].className='on'; },1400);

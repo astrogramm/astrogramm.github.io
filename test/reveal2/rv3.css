@@ -22,7 +22,7 @@
 .rv3act{top:620px;left:44px;right:44px;font:300 17px/1.35 var(--font-display,'Ysabeau');color:#E4DAF6;opacity:0}
 .rv3 .rvbtn{left:44px;right:44px;top:690px;width:auto;max-width:none;height:54px;min-height:54px;margin:0;border-radius:27px;border:0;background:linear-gradient(180deg,#ecd48d,#c9a24d);color:#1a0f36;font:500 17px var(--font-body,'Ysabeau Office');display:flex;align-items:center;justify-content:center;box-shadow:0 8px 30px rgba(217,185,103,.25);opacity:0;pointer-events:none;animation:none}
 .rv3seal{width:74px;height:74px;border-radius:50%;background:#0b0620 center/cover;border:1.5px solid #D9B967;box-shadow:0 0 22px rgba(217,185,103,.5);opacity:0}
-.rv3 .rvskip{position:absolute;left:auto;right:16px;top:14px;bottom:auto;transform:none;font-size:12.5px;color:#8f84ad;letter-spacing:.05em;padding:8px;min-height:44px;background:none;border:0;border-radius:0;z-index:6;font-family:inherit;opacity:0}
+.rv3 .rvskip{opacity:1;position:absolute;left:auto;right:16px;top:14px;bottom:auto;transform:none;font-size:12.5px;color:#8f84ad;letter-spacing:.05em;padding:8px;min-height:44px;background:none;border:0;border-radius:0;z-index:6;font-family:inherit;opacity:0}
 .rv3st.done .rvskip{display:none}
 .rv3 .rvface{display:none}
 /* удержание (после «Открыть мою карту»): «Поделиться именем» под кнопкой, просьба об уведомлении — в .rvwrap */
